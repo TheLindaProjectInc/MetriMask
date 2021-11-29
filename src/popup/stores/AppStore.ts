@@ -12,6 +12,7 @@ import SettingsStore from './SettingsStore';
 import AccountDetailStore from './AccountDetailStore';
 import SendStore from './SendStore';
 import AddTokenStore from './AddTokenStore';
+import AddMRC721TokenStore from './AddMRC721TokenStore';
 import MainContainerStore from './MainContainerStore';
 
 export default class AppStore {
@@ -28,6 +29,7 @@ export default class AppStore {
   public accountDetailStore: AccountDetailStore;
   public sendStore: SendStore;
   public addTokenStore: AddTokenStore;
+  public addMrc721TokenStore: AddMRC721TokenStore;
   public mainContainerStore: MainContainerStore;
 
   constructor() {
@@ -44,6 +46,7 @@ export default class AppStore {
     this.accountDetailStore = new AccountDetailStore(this);
     this.sendStore = new SendStore(this);
     this.addTokenStore = new AddTokenStore(this);
+    this.addMrc721TokenStore = new AddMRC721TokenStore(this);
     this.mainContainerStore = new MainContainerStore(this);
   }
 }

@@ -32,8 +32,8 @@ export default class AddMRC721TokenStore {
   }
   @computed public get tokenAlreadyInListError(): string | undefined {
     // Check if the token is already in the list
-    const index = findIndex(this.app.accountDetailStore.tokens, { address: this.contractAddress });
-    return (index !== -1 ? 'Token already in token list' : undefined );
+    const index = findIndex(this.app.accountDetailStore.Mrc721tokens, { address: this.contractAddress });
+    return (index !== -1 ? 'NFT Token already in token list' : undefined );
   }
 
   private app: AppStore;

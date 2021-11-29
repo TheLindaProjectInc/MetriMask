@@ -1,6 +1,7 @@
 import { every } from 'lodash';
 
 import CryptoController from './cryptoController';
+import Mrc721Controller from './mrc721Controller';
 import TokenController from './tokenController';
 import AccountController from './accountController';
 import NetworkController from './networkController';
@@ -14,6 +15,7 @@ import { MESSAGE_TYPE } from '../../constants';
 
 export default class MetriMaskController {
   public crypto: CryptoController;
+  public mrc721Token: Mrc721Controller;
   public token: TokenController;
   public account: AccountController;
   public network: NetworkController;
@@ -28,6 +30,7 @@ export default class MetriMaskController {
 
   constructor() {
     this.crypto = new CryptoController(this);
+    this.mrc721Token = new Mrc721Controller(this);
     this.token = new TokenController(this);
     this.account = new AccountController(this);
     this.network = new NetworkController(this);

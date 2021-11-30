@@ -119,7 +119,8 @@ const TokenList: SFC<any> = observer(({ classes,
   <div>
     {tokens && tokens.map(({ name, symbol, balance, address }: MRCToken) => (
       <ListItem divider key={symbol} className={classes.listItem}
-        onClick = {() => accountDetailStore.editTokenMode && accountDetailStore.removeToken(address)}
+        onClick = {() => (accountDetailStore.editTokenMode && accountDetailStore.removeToken(address) ||
+          !accountDetailStore.editTokenMode && accountDetailStore.onTokenClick(address))}
       >
         {accountDetailStore.editTokenMode &&
           <Button
@@ -164,7 +165,8 @@ const Mrc721List: SFC<any> = observer(({ classes,
   <div>
     {mrc721tokens && mrc721tokens.map(({ name, symbol, balance, address }: MRC721Token) => (
       <ListItem divider key={symbol} className={classes.listItem}
-        onClick = {() => accountDetailStore.editTokenMode && accountDetailStore.removeMrc721Token(address)}
+        onClick = {() => (accountDetailStore.editTokenMode && accountDetailStore.removeMrc721Token(address) ||
+          !accountDetailStore.editTokenMode && accountDetailStore.onNFTClick(address))}
       >
         {accountDetailStore.editTokenMode &&
           <Button

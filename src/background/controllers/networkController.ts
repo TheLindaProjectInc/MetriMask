@@ -7,9 +7,9 @@ import QryNetwork from '../../models/QryNetwork';
 
 export default class NetworkController extends IController {
   public static NETWORKS: QryNetwork[] = [
-    new QryNetwork(NETWORK_NAMES.MAINNET, networks.mainnet, 'https://explorer.metrixcoin.com/tx'),
-    new QryNetwork(NETWORK_NAMES.TESTNET, networks.testnet, 'https://testnet-explorer.metrixcoin.com/tx'),
-    new QryNetwork(NETWORK_NAMES.REGTEST, networks.regtest, 'http://localhost:3001/explorer/tx'),
+    new QryNetwork(NETWORK_NAMES.MAINNET, networks.mainnet, 'https://explorer.metrixcoin.com/'),
+    new QryNetwork(NETWORK_NAMES.TESTNET, networks.testnet, 'https://testnet-explorer.metrixcoin.com/'),
+    new QryNetwork(NETWORK_NAMES.REGTEST, networks.regtest, 'http://localhost:3001/explorer/'),
   ];
 
   public get isMainNet(): boolean {
@@ -19,7 +19,13 @@ export default class NetworkController extends IController {
     return NetworkController.NETWORKS[this.networkIndex].network;
   }
   public get explorerUrl(): string {
-    return NetworkController.NETWORKS[this.networkIndex].explorerUrl;
+    return NetworkController.NETWORKS[this.networkIndex].explorerUrl + 'tx';
+  }
+  public get tokenUrl(): string {
+    return NetworkController.NETWORKS[this.networkIndex].explorerUrl + 'mrc20';
+  }
+  public get mrc721Url(): string {
+    return NetworkController.NETWORKS[this.networkIndex].explorerUrl + 'mrc721';
   }
   public get networkName(): string {
     return NetworkController.NETWORKS[this.networkIndex].name;
@@ -71,6 +77,12 @@ export default class NetworkController extends IController {
           break;
         case MESSAGE_TYPE.GET_NETWORK_EXPLORER_URL:
           sendResponse(this.explorerUrl);
+          break;
+        case MESSAGE_TYPE.GET_NETWORK_EXPLORER_TOKEN_URL:
+          sendResponse(this.tokenUrl);
+          break;
+        case MESSAGE_TYPE.GET_NETWORK_EXPLORER_MRC721_URL:
+          sendResponse(this.mrc721Url);
           break;
         default:
           break;

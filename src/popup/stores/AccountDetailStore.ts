@@ -70,6 +70,18 @@ export default class AccountDetailStore {
     });
   }
 
+  public onTokenClick = (address: string) => {
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_TOKEN_URL }, (response: any) => {
+      chrome.tabs.create({ url: `${response}/${address}` });
+    });
+  }
+
+  public onNFTClick = (address: string) => {
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_MRC721_URL }, (response: any) => {
+      chrome.tabs.create({ url: `${response}/${address}` });
+    });
+  }
+
   public removeToken = (contractAddress: string) => {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.REMOVE_TOKEN,

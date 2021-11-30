@@ -289,6 +289,7 @@ export default class AccountController extends IController {
     await this.getWalletInfo(sendInpageUpdate);
     await this.startPolling();
     await this.main.token.startPolling();
+    await this.main.mrc721Token.startPolling();
     await this.main.external.startPolling();
 
     /**

@@ -41,13 +41,13 @@ export default class SessionController extends IController {
   public clearSession = () => {
     this.main.account.resetAccount();
     this.main.token.resetTokenList();
-    this.main.inpageAccount.sendInpageAccountAllPorts(
-      METRIMASK_ACCOUNT_CHANGE.LOGOUT
-    );
+    this.main.mrc721Token.resetTokenList();
+    this.main.inpageAccount.sendInpageAccountAllPorts(METRIMASK_ACCOUNT_CHANGE.LOGOUT);
   }
 
   private clearAllIntervalsExceptAccount = () => {
     this.main.token.stopPolling();
+    this.main.mrc721Token.stopPolling();
     this.main.external.stopPolling();
     this.main.transaction.stopPolling();
   }

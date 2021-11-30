@@ -160,9 +160,9 @@ const TokenList: SFC<any> = observer(({ classes,
 ));
 
 const Mrc721List: SFC<any> = observer(({ classes,
-  store: { accountDetailStore, accountDetailStore: { Mrc721tokens } } }: any) => (
+  store: { accountDetailStore, accountDetailStore: { mrc721tokens } } }: any) => (
   <div>
-    {Mrc721tokens && Mrc721tokens.map(({ name, symbol, balance, address }: MRC721Token) => (
+    {mrc721tokens && mrc721tokens.map(({ name, symbol, balance, address }: MRC721Token) => (
       <ListItem divider key={symbol} className={classes.listItem}
         onClick = {() => accountDetailStore.editTokenMode && accountDetailStore.removeMrc721Token(address)}
       >

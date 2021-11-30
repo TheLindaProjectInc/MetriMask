@@ -278,6 +278,7 @@ export default class AccountController extends IController {
   */
   public onAccountLoggedIn = async (isSessionRestore = false) => {
     this.main.token.initTokenList();
+    this.main.mrc721Token.initTokenList();
 
     /**
      * We set sendInpageUpdate to false because we are already calling

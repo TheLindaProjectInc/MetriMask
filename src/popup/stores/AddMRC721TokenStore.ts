@@ -32,7 +32,7 @@ export default class AddMRC721TokenStore {
   }
   @computed public get tokenAlreadyInListError(): string | undefined {
     // Check if the token is already in the list
-    const index = findIndex(this.app.accountDetailStore.Mrc721tokens, { address: this.contractAddress });
+    const index = findIndex(this.app.accountDetailStore.mrc721tokens, { address: this.contractAddress });
     return (index !== -1 ? 'NFT Token already in token list' : undefined );
   }
 
@@ -91,7 +91,7 @@ export default class AddMRC721TokenStore {
     switch (request.type) {
       case MESSAGE_TYPE.MRC721_TOKEN_DETAILS_RETURN:
         if (request.isValid) {
-          const { name, symbol } = request.token;
+          const { name, symbol } = request.mrc721token;
           this.name = name;
           this.symbol = symbol;
         } else {

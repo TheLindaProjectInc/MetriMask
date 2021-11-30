@@ -28,7 +28,7 @@ export default class Mrc721Controller extends IController {
   private getBalancesInterval?: number = INIT_VALUES.getBalancesInterval;
 
   constructor(main: MetriMaskController) {
-    super('token', main);
+    super('mrc721token', main);
 
     chrome.runtime.onMessage.addListener(this.handleMessage);
     this.initFinished();
@@ -85,8 +85,8 @@ export default class Mrc721Controller extends IController {
   * Fetch the tokens balances via RPC calls.
   */
   private getBalances = () => {
-    each(this.mrc721tokens, async (token: MRC721Token) => {
-      await this.getMRCTokenBalance(token);
+    each(this.mrc721tokens, async (mrc721token: MRC721Token) => {
+      await this.getMRCTokenBalance(mrc721token);
     });
   }
 
@@ -94,7 +94,7 @@ export default class Mrc721Controller extends IController {
   * Makes an RPC call to the contract to get the token balance of this current wallet address.
   * @param token The MRC721Token to get the balance of.
   */
-  private getMRCTokenBalance = async (token: MRC721Token) => {
+  private getMRCTokenBalance = async (mrc721token: MRC721Token) => {
     if (!this.main.account.loggedInAccount
       || !this.main.account.loggedInAccount.wallet
       || !this.main.account.loggedInAccount.wallet.mjsWallet
@@ -109,7 +109,7 @@ export default class Mrc721Controller extends IController {
       methodName,
       [this.main.account.loggedInAccount.wallet.mjsWallet.address],
     );
-    const args = [token.address, data];
+    const args = [mrc721token.address, data];
     const { result, error } = await this.main.rpc.callContract(generateRequestId(), args);
 
     if (error) {
@@ -124,12 +124,12 @@ export default class Mrc721Controller extends IController {
     const balance = bigNumberBal.toNumber(); // Convert to regular denomination
 
     // Update token balance in place
-    const index = findIndex(this.mrc721tokens, { name: token.name, symbol: token.symbol });
+    const index = findIndex(this.mrc721tokens, { name: mrc721token.name, symbol: mrc721token.symbol });
     if (index !== -1) {
       this.mrc721tokens![index].balance = balance;
     }
 
-    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.MRC721_TOKENS_RETURN, tokens: this.mrc721tokens });
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.MRC721_TOKENS_RETURN, mrc721tokens: this.mrc721tokens });
   }
 
   /**
@@ -181,11 +181,11 @@ export default class Mrc721Controller extends IController {
       const supportsInterface = result.executionResult.formattedOutput[0];
 
       if (name && symbol && supportsInterface) {
-        const token = new MRC721Token(name, symbol, contractAddress);
+        const mrc721token = new MRC721Token(name, symbol, contractAddress);
         msg = {
           type: MESSAGE_TYPE.MRC721_TOKEN_DETAILS_RETURN,
           isValid: true,
-          token,
+          mrc721token,
         };
       } else {
         msg = {
@@ -230,10 +230,10 @@ export default class Mrc721Controller extends IController {
   // }
 
   private addToken = async (contractAddress: string, name: string, symbol: string) => {
-    const newToken = new MRC721Token(name, symbol, contractAddress);
-    this.mrc721tokens!.push(newToken);
+    const newMrc721Token = new MRC721Token(name, symbol, contractAddress);
+    this.mrc721tokens!.push(newMrc721Token);
     this.setTokenListInChromeStorage();
-    await this.getMRCTokenBalance(newToken);
+    await this.getMRCTokenBalance(newMrc721Token);
   }
 
   private removeToken = (contractAddress: string) => {
@@ -248,7 +248,7 @@ export default class Mrc721Controller extends IController {
     }, () => {
       chrome.runtime.sendMessage({
         type: MESSAGE_TYPE.MRC721_TOKENS_RETURN,
-        tokens: this.mrc721tokens,
+        mrc721tokens: this.mrc721tokens,
       });
     });
   }

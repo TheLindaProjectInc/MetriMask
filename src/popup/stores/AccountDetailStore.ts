@@ -10,7 +10,7 @@ const INIT_VALUES = {
   activeTabIdx: 0,
   transactions: [],
   tokens: [],
-  Mrc721tokens: [],
+  mrc721tokens: [],
   hasMore: false,
   shouldScrollToBottom: false,
   editTokenMode: false,
@@ -20,7 +20,7 @@ export default class AccountDetailStore {
   @observable public activeTabIdx: number = INIT_VALUES.activeTabIdx;
   @observable public transactions: Transaction[] = INIT_VALUES.transactions;
   @observable public tokens: MRCToken[] = INIT_VALUES.tokens;
-  @observable public Mrc721tokens: MRC721Token[] = INIT_VALUES.Mrc721tokens;
+  @observable public mrc721tokens: MRC721Token[] = INIT_VALUES.mrc721tokens;
   @observable public hasMore: boolean = INIT_VALUES.hasMore;
   @observable public shouldScrollToBottom: boolean = INIT_VALUES.shouldScrollToBottom;
   @observable public editTokenMode: boolean = INIT_VALUES.editTokenMode;
@@ -105,7 +105,7 @@ export default class AccountDetailStore {
 
   private onMrc721TokenTabSelected = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MRC721_TOKEN_LIST }, (response: any) => {
-      this.Mrc721tokens = response;
+      this.mrc721tokens = response;
     });
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.STOP_TX_POLLING });
   }
@@ -121,7 +121,7 @@ export default class AccountDetailStore {
         this.tokens = request.tokens;
         break;
       case MESSAGE_TYPE.MRC721_TOKENS_RETURN:
-        this.Mrc721tokens = request.tokens;
+        this.mrc721tokens = request.mrc721tokens;
         break;
       default:
         break;

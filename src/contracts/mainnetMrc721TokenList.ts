@@ -1,6 +1,6 @@
-import MRCToken from '../models/MRCToken';
+import MRC721Token from '../models/MRC721Token';
 
-const mainnetTokenList: MRCToken[] = [
+const mainnetMrc721TokenList: MRC721Token[] = [
 ];
 
-export default mainnetTokenList;
+export default mainnetMrc721TokenList;

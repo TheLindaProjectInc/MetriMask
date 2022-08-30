@@ -11,6 +11,7 @@ import Transaction from '../../../models/Transaction';
 import AccountInfo from '../../components/AccountInfo';
 import AppStore from '../../stores/AppStore';
 import MRCToken from '../../../models/MRCToken';
+import MRC721Token from '../../../models/MRC721Token';
 import { shortenTxid } from '../../../utils';
 
 interface IProps {
@@ -63,10 +64,13 @@ class AccountDetail extends Component<WithStyles & IProps, {}> {
             >
               <Tab label="Transactions" className={classes.tab} />
               <Tab label="Tokens" className={classes.tab} />
+              <Tab label="NFT's" className={classes.tab} />
             </Tabs>
           </Paper>
           <List className={classes.list}>
-            {activeTabIdx === 0 ? <TransactionList {...this.props} /> : <TokenList {...this.props} />}
+            {activeTabIdx === 0 && <TransactionList {...this.props} />}
+            {activeTabIdx === 1 && <TokenList {...this.props}/>}
+            {activeTabIdx === 2 && <Mrc721List {...this.props} />}
             <div ref={(el) => { this.messagesEnd = el; }}></div>
           </List>
         </div>
@@ -115,7 +119,8 @@ const TokenList: SFC<any> = observer(({ classes,
   <div>
     {tokens && tokens.map(({ name, symbol, balance, address }: MRCToken) => (
       <ListItem divider key={symbol} className={classes.listItem}
-        onClick = {() => accountDetailStore.editTokenMode && accountDetailStore.removeToken(address)}
+        onClick = {() => (accountDetailStore.editTokenMode && accountDetailStore.removeToken(address) ||
+          !accountDetailStore.editTokenMode && accountDetailStore.onTokenClick(address))}
       >
         {accountDetailStore.editTokenMode &&
           <Button
@@ -148,6 +153,52 @@ const TokenList: SFC<any> = observer(({ classes,
         color="primary"
         size="small"
         onClick={() => accountDetailStore.routeToAddToken()}
+        >
+        Add Token
+      </Button>
+    </div>
+  </div>
+));
+
+const Mrc721List: SFC<any> = observer(({ classes,
+  store: { accountDetailStore, accountDetailStore: { mrc721tokens } } }: any) => (
+  <div>
+    {mrc721tokens && mrc721tokens.map(({ name, symbol, balance, address }: MRC721Token) => (
+      <ListItem divider key={symbol} className={classes.listItem}
+        onClick = {() => (accountDetailStore.editTokenMode && accountDetailStore.removeMrc721Token(address) ||
+          !accountDetailStore.editTokenMode && accountDetailStore.onNFTClick(address))}
+      >
+        {accountDetailStore.editTokenMode &&
+          <Button
+            className={classes.tokenDeleteButton}
+            id="removeTokenButton"
+          >
+          <img src="images/ic_delete.svg"/>
+          </Button>
+        }
+        <div className={classes.tokenInfoContainer}>
+          <Typography className={classes.tokenName}>{name}</Typography>
+        </div>
+        <AmountInfo classes={classes} amount={balance === undefined || balance < 1
+          ? balance : Math.trunc(balance)} token={symbol} convertedValue={0} />
+      </ListItem>
+    ))}
+    <div className={classes.bottomButtonWrap}>
+      <Button
+        className={classes.bottomButton}
+        id="editTokenButton"
+        color="primary"
+        size="small"
+        onClick={() => accountDetailStore.editTokenMode = !accountDetailStore.editTokenMode }
+        >
+        {accountDetailStore.editTokenMode ? 'Done' : 'Edit'}
+      </Button>
+      <Button
+        className={classes.bottomButton}
+        id="addTokenButton"
+        color="primary"
+        size="small"
+        onClick={() => accountDetailStore.routeToAddMrc721Token()}
         >
         Add Token
       </Button>

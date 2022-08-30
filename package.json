@@ -68,6 +68,7 @@
     "chrome-call": "^3.0.0",
     "classnames": "^2.2.6",
     "deep-equal": "^1.0.1",
+    "follow-redirects": "1.14.8",
     "metrixjs-wallet": "^0.2.20",
     "mobx": "^5.0.3",
     "mobx-react": "^5.2.3",

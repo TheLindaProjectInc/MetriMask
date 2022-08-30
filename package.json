@@ -63,7 +63,7 @@
     "axios": "^0.24.0",
     "bignumber.js": "^7.2.1",
     "bip39": "^3.0.4",
-    "bitcoinjs-lib": "4.0.5",
+    "bitcoinjs-lib": "6.0.2",
     "bitcoinjs-message": "^2.2.0",
     "chrome-call": "^3.0.0",
     "classnames": "^2.2.6",

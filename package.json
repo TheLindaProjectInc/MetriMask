@@ -59,7 +59,7 @@
     "@types/lodash": "^4.14.184",
     "@types/qrcode.react": "^0.8.0",
     "@types/scryptsy": "^2.0.0",
-    "@types/secp256k1": "^3.5.0",
+    "@types/secp256k1": "^4.0.3",
     "axios": "^0.27.2",
     "bignumber.js": "^7.2.1",
     "bip39": "^3.0.4",
@@ -78,7 +78,7 @@
     "qrcode.react": "^0.8.0",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "secp256k1": "^3.5.0",
+    "secp256k1": "^4.0.3",
     "wif": "^2.0.6"
   }
 }

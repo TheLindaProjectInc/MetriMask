@@ -60,7 +60,7 @@
     "@types/qrcode.react": "^0.8.0",
     "@types/scryptsy": "^2.0.0",
     "@types/secp256k1": "^3.5.0",
-    "axios": "^0.24.0",
+    "axios": "^0.27.2",
     "bignumber.js": "^7.2.1",
     "bip39": "^3.0.4",
     "bitcoinjs-lib": "4.0.5",

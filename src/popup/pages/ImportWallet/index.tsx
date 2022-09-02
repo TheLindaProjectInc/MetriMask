@@ -115,7 +115,7 @@ const TypeField = observer(({ classes, store: { importStore } }: any) => (
   </div>
 ));
 
-const ErrorDialog: React.SFC<any> = observer(({ store: { importStore }}: any) => (
+const ErrorDialog: React.FC<any> = observer(({ store: { importStore }}: any) => (
   <Dialog
     disableBackdropClick
     open={importStore.importMnemonicPrKeyFailed}

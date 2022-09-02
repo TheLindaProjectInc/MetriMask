@@ -20,7 +20,7 @@ interface IProps {
   title: string;
 }
 
-const NavBar: React.SFC<IProps> = inject('store')(observer((props: IProps) => {
+const NavBar: React.FC<IProps> = inject('store')(observer((props: IProps) => {
   const {
     classes,
     hasBackButton,
@@ -52,7 +52,7 @@ const NavBar: React.SFC<IProps> = inject('store')(observer((props: IProps) => {
   );
 }));
 
-const FullScreenButton: React.SFC<IProps> = ({ classes, isDarkTheme, store: { navBarStore }}: any) => (
+const FullScreenButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { navBarStore }}: any) => (
   <IconButton color="primary" onClick={() => navBarStore.fullScreen() }
   className={classes.fullScreenIconButton}
   >
@@ -60,13 +60,13 @@ const FullScreenButton: React.SFC<IProps> = ({ classes, isDarkTheme, store: { na
   </IconButton>
 );
 
-const BackButton: React.SFC<IProps> = ({ classes, isDarkTheme, store: { routerStore } }: any) => (
+const BackButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { routerStore } }: any) => (
   <IconButton onClick={() => routerStore.goBack()} className={classes.backIconButton}>
     <ArrowBack className={cx(classes.backButton, isDarkTheme ? 'white' : '')} />
   </IconButton>
 );
 
-const SettingsButton: React.SFC<IProps> =
+const SettingsButton: React.FC<IProps> =
   observer(({ classes, store: { navBarStore }, isDarkTheme }: any) => (
   <Fragment>
     <IconButton

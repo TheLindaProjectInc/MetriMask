@@ -5,7 +5,7 @@ import cx from 'classnames';
 import styles from './styles';
 import { handleEnterPress } from '../../../utils';
 
-const PasswordTextField: React.SFC<any> = ({
+const PasswordTextField: React.FC<any> = ({
   classes,
   classNames,
   autoFocus,

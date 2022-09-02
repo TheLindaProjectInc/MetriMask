@@ -68,7 +68,7 @@ export default class MainContainer extends Component<IProps, {}> {
   }
 }
 
-const UnexpectedErrorDialog: React.SFC<any> = inject('store')(observer(({ store: { mainContainerStore } }) => (
+const UnexpectedErrorDialog: React.FC<any> = inject('store')(observer(({ store: { mainContainerStore } }) => (
   <Dialog
     disableBackdropClick
     open={!!mainContainerStore.unexpectedError}

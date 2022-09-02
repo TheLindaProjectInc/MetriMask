@@ -1,4 +1,4 @@
-import React, { Component, SFC } from 'react';
+import React, { Component, FC } from 'react';
 import { Button,
   Dialog,
   DialogTitle,
@@ -43,7 +43,7 @@ class LoginConfirm extends Component<WithStyles & IProps, {}> {
   }
 }
 
-const ConfirmButton: SFC<any> = observer(({ classes, store: { savePrivateKeyStore } }: any) => (
+const ConfirmButton: FC<any> = observer(({ classes, store: { savePrivateKeyStore } }: any) => (
   <Button
     className={classes.loginButton}
     fullWidth
@@ -55,7 +55,7 @@ const ConfirmButton: SFC<any> = observer(({ classes, store: { savePrivateKeyStor
   </Button>
 ));
 
-const ErrorDialog: React.SFC<any> = observer(({ store: { savePrivateKeyStore }}: any) => (
+const ErrorDialog: React.FC<any> = observer(({ store: { savePrivateKeyStore }}: any) => (
   <Dialog
     disableBackdropClick
     open={!!savePrivateKeyStore.invalidPassword}

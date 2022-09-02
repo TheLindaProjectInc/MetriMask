@@ -1,4 +1,4 @@
-import React, { Component, SFC } from 'react';
+import React, { Component, FC } from 'react';
 import { Typography,
   Button,
   withStyles,
@@ -42,7 +42,7 @@ class ExportWallet extends Component<WithStyles & IProps, {}> {
   }
 }
 
-const ExportKey: SFC<any> = observer(({ classes, store: { savePrivateKeyStore, routerStore } }: any) => (
+const ExportKey: FC<any> = observer(({ classes, store: { savePrivateKeyStore, routerStore } }: any) => (
     <div className={classes.contentContainer}>
     <div className={classes.topContainer}>
       <Typography className={classes.exportWalletHeader}>{strings['savePrivateKey.walletCreated']}</Typography>

@@ -32,7 +32,7 @@ class Settings extends Component<WithStyles & IProps, {}> {
   }
 }
 
-const SliField: React.SFC<any> = observer(({ classes, store: { settingsStore } }: any) => (
+const SliField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
   <div className={classes.fieldContainer}>
     <Heading name="Session Logout Interval" />
     <div className={classes.fieldContentContainer}>

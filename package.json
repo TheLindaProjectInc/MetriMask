@@ -72,7 +72,7 @@
     "metrixjs-wallet": "^0.2.20",
     "mobx": "^5.0.3",
     "mobx-react": "^5.2.3",
-    "mobx-react-router": "^4.0.4",
+    "mobx-react-router": "^4.1.0",
     "moment": "^2.29.4",
     "mweb3": "^1.0.0",
     "qrcode.react": "^0.8.0",

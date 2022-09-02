@@ -180,6 +180,11 @@
   resolved "https://registry.yarnpkg.com/@types/normalize-package-data/-/normalize-package-data-2.4.1.tgz#d3357479a0fdfdd5907fe67e17e0a85c906e1301"
   integrity sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==
 
+"@types/prop-types@*":
+  version "15.7.5"
+  resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.5.tgz#5f19d2b85a98e9558036f6a3cacc8819420f05cf"
+  integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
+
 "@types/prop-types@^15.5.3":
   version "15.5.3"
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.5.3.tgz#bef071852dca2a2dbb65fecdb7bfb30cedae2de2"
@@ -224,11 +229,12 @@
   dependencies:
     csstype "^2.2.0"
 
-"@types/react@16.4.2":
-  version "16.4.2"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.4.2.tgz#f1a9cf1ee85221530def2ac26aee20f910a9dac8"
-  integrity sha512-oVcVteCDNiVc/fkDjowRfAZQDEOR76j3CJ3FvwXNvfV6zJguhghy1lMgpAzYox+9AZsWch+JPV6Imml3wvIUeg==
+"@types/react@16.4.18":
+  version "16.4.18"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.4.18.tgz#2e28a2e7f92d3fa7d6a65f2b73275c3e3138a13d"
+  integrity sha512-eFzJKEg6pdeaukVLVZ8Xb79CTl/ysX+ExmOfAAqcFlCCK5TgFDD9kWR0S18sglQ3EmM8U+80enjUqbfnUyqpdA==
   dependencies:
+    "@types/prop-types" "*"
     csstype "^2.2.0"
 
 "@types/scryptsy@^2.0.0":
@@ -2407,7 +2413,7 @@ fastparse@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/fastparse/-/fastparse-1.1.1.tgz#d1e2643b38a94d7583b479060e6c4affc94071f8"
 
-fbjs@^0.8.1, fbjs@^0.8.16:
+fbjs@^0.8.1:
   version "0.8.17"
   resolved "https://registry.yarnpkg.com/fbjs/-/fbjs-0.8.17.tgz#c4d598ead6949112653d6588b01a5cdcd9f90fdd"
   dependencies:
@@ -3750,7 +3756,7 @@ js-tokens@^3.0.0, js-tokens@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-3.0.2.tgz#9866df395102130e38f7f996bceb65443209c25b"
 
-js-tokens@^4.0.0:
+"js-tokens@^3.0.0 || ^4.0.0", js-tokens@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
@@ -4128,6 +4134,13 @@ loose-envify@^1.0.0, loose-envify@^1.1.0, loose-envify@^1.2.0, loose-envify@^1.3
   resolved "https://registry.yarnpkg.com/loose-envify/-/loose-envify-1.3.1.tgz#d1a8ad33fa9ce0e713d65fdd0ac8b748d478c848"
   dependencies:
     js-tokens "^3.0.0"
+
+loose-envify@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/loose-envify/-/loose-envify-1.4.0.tgz#71ee51fa7be4caec1a63839f7e682d8132d30caf"
+  integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
+  dependencies:
+    js-tokens "^3.0.0 || ^4.0.0"
 
 lru-cache@^4.0.1, lru-cache@^4.1.1:
   version "4.1.3"
@@ -5658,6 +5671,15 @@ prop-types@^15.5.8, prop-types@^15.6.0, prop-types@^15.6.1:
     loose-envify "^1.3.1"
     object-assign "^4.1.1"
 
+prop-types@^15.6.2:
+  version "15.8.1"
+  resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.8.1.tgz#67d87bf1a694f48435cf332c24af10214a3140b5"
+  integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==
+  dependencies:
+    loose-envify "^1.4.0"
+    object-assign "^4.1.1"
+    react-is "^16.13.1"
+
 prr@~1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/prr/-/prr-1.0.1.tgz#d3fc114ba06995a45ec6893f484ceb1d78f5f476"
@@ -5808,15 +5830,15 @@ rc@^1.1.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-react-dom@16.4.2:
-  version "16.4.2"
-  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.4.2.tgz#4afed569689f2c561d2b8da0b819669c38a0bda4"
-  integrity sha512-Usl73nQqzvmJN+89r97zmeUpQDKDlh58eX6Hbs/ERdDHzeBzWy+ENk7fsGQ+5KxArV1iOFPT46/VneklK9zoWw==
+react-dom@16.6.3:
+  version "16.6.3"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.6.3.tgz#8fa7ba6883c85211b8da2d0efeffc9d3825cccc0"
+  integrity sha512-8ugJWRCWLGXy+7PmNh8WJz3g1TaTUt1XyoIcFN+x0Zbkoz+KKdUyx1AQLYJdbFXjuF41Nmjn5+j//rxvhFjgSQ==
   dependencies:
-    fbjs "^0.8.16"
     loose-envify "^1.1.0"
     object-assign "^4.1.1"
-    prop-types "^15.6.0"
+    prop-types "^15.6.2"
+    scheduler "^0.11.2"
 
 react-event-listener@^0.6.0:
   version "0.6.1"
@@ -5825,6 +5847,11 @@ react-event-listener@^0.6.0:
     "@babel/runtime" "^7.0.0-beta.42"
     prop-types "^15.6.0"
     warning "^4.0.1"
+
+react-is@^16.13.1:
+  version "16.13.1"
+  resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
+  integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
 react-jss@^8.1.0:
   version "8.5.1"
@@ -5878,15 +5905,15 @@ react-transition-group@^2.2.1:
     loose-envify "^1.3.1"
     prop-types "^15.6.1"
 
-react@16.4.2:
-  version "16.4.2"
-  resolved "https://registry.yarnpkg.com/react/-/react-16.4.2.tgz#2cd90154e3a9d9dd8da2991149fdca3c260e129f"
-  integrity sha512-dMv7YrbxO4y2aqnvA7f/ik9ibeLSHQJTI6TrYAenPSaQ6OXfb+Oti+oJiy8WBxgRzlKatYqtCjphTgDSCEiWFg==
+react@16.6.3:
+  version "16.6.3"
+  resolved "https://registry.yarnpkg.com/react/-/react-16.6.3.tgz#25d77c91911d6bbdd23db41e70fb094cc1e0871c"
+  integrity sha512-zCvmH2vbEolgKxtqXL2wmGCUxUyNheYn/C+PD1YAjfxHC54+MhdruyhO7QieQrYsYeTxrn93PM2y0jRH1zEExw==
   dependencies:
-    fbjs "^0.8.16"
     loose-envify "^1.1.0"
     object-assign "^4.1.1"
-    prop-types "^15.6.0"
+    prop-types "^15.6.2"
+    scheduler "^0.11.2"
 
 read-pkg-up@^2.0.0:
   version "2.0.0"
@@ -6242,6 +6269,14 @@ sass-loader@^7.0.3:
 sax@^1.2.4, sax@~1.2.1:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
+
+scheduler@^0.11.2:
+  version "0.11.3"
+  resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.11.3.tgz#b5769b90cf8b1464f3f3cfcafe8e3cd7555a2d6b"
+  integrity sha512-i9X9VRRVZDd3xZw10NY5Z2cVMbdYg6gqFecfj79USv1CFN+YrJ3gIPRKf1qlY+Sxly4djoKdfx1T+m9dnRB8kQ==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
 
 schema-utils@^0.4.0, schema-utils@^0.4.3, schema-utils@^0.4.5:
   version "0.4.5"

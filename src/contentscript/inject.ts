@@ -2,7 +2,7 @@ import { API_TYPE, TARGET_NAME } from '../constants';
 import { postWindowMessage } from '../utils/messenger';
 
 function injectScript(src: string) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     const scriptElement = document.createElement('script');
     const headOrDocumentElement = document.head || document.documentElement;
 
@@ -13,7 +13,7 @@ function injectScript(src: string) {
 }
 
 function injectStylesheet(src: string) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     const styleElement = document.createElement('link');
     const headOrDocumentElement = document.head || document.documentElement;
 

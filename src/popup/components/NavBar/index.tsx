@@ -61,7 +61,7 @@ const FullScreenButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { nav
 );
 
 const BackButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { routerStore } }: any) => (
-  <IconButton onClick={() => routerStore.goBack()} className={classes.backIconButton}>
+  <IconButton onClick={() => routerStore.go(-1)} className={classes.backIconButton}>
     <ArrowBack className={cx(classes.backButton, isDarkTheme ? 'white' : '')} />
   </IconButton>
 );

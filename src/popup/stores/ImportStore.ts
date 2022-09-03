@@ -78,6 +78,6 @@ export default class ImportStore {
 
   @action
   public cancelImport = () => {
-    this.app.routerStore.goBack();
+    this.app.routerStore.go(-1);
   }
 }

@@ -55,12 +55,12 @@ export default class MainContainerStore {
 
       case MESSAGE_TYPE.IMPORT_MNEMONIC_PRKEY_FAILURE:
         importStore.importMnemonicPrKeyFailed = true;
-        routerStore.goBack();
+        routerStore.go(-1);
         break;
 
       case MESSAGE_TYPE.UNEXPECTED_ERROR:
         if (routerStore.location.pathname === '/loading') {
-          routerStore.goBack();
+          routerStore.go(-1);
         }
         this.unexpectedError = request.error;
         break;

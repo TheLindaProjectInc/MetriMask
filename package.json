@@ -32,7 +32,7 @@
     "css-loader": "^0.28.11",
     "extract-text-webpack-plugin": "^4.0.0-beta.0",
     "file-loader": "^1.1.11",
-    "husky": "^0.14.3",
+    "husky": "^8.0.1",
     "lint-staged": "^7.0.0",
     "node-sass": "^7.0.1",
     "postcss-flexbugs-fixes": "^3.3.0",

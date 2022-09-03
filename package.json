@@ -75,7 +75,7 @@
     "mobx-react-router": "^4.1.0",
     "moment": "^2.29.4",
     "mweb3": "^1.0.0",
-    "qrcode.react": "^0.8.0",
+    "qrcode.react": "^3.1.0",
     "react": "18.0.0",
     "react-dom": "18.0.0",
     "secp256k1": "^4.0.3",

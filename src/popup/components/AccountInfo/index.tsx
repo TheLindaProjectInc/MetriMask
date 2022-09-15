@@ -18,7 +18,7 @@ class AccountInfo extends Component<WithStyles & IProps, {}> {
   public handleClick = (id: string, event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
 
-    const location = {
+    const location: any = {
       mainCard: '/account-detail',
       sendButton: '/send',
       receiveButton: '/receive',

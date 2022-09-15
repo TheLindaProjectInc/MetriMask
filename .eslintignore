@@ -1,0 +1,8 @@
+.eslintrc.js
+scryptworker.js
+global.css
+en_US.json
+logo.svg
+webpack.base.config.js
+webpack.dev.config.js
+webpack.prod.config.js

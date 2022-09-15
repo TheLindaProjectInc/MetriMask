@@ -48,7 +48,7 @@ export default class MetriMaskController {
   */
   public registerController = (name: string) => {
     this.initialized[name] = false;
-  }
+  };
 
   /*
   * Routes to the login page after all controllers are initialized.
@@ -60,9 +60,9 @@ export default class MetriMaskController {
     if (every(this.initialized)) {
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.ROUTE_LOGIN });
     }
-  }
+  };
 
   public displayErrorOnPopup = (err: Error)  => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.UNEXPECTED_ERROR, error: err.message });
-  }
+  };
 }

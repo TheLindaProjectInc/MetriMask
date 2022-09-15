@@ -70,7 +70,7 @@ export default class SessionStore {
     });
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_WALLET_INFO }, (response: any) => this.info = response);
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MRX_USD }, (response: any) => this.metrixUSD = response);
-  }
+  };
 
   @action
   private handleMessage = (request: any) => {
@@ -90,5 +90,5 @@ export default class SessionStore {
       default:
         break;
     }
-  }
+  };
 }

@@ -9,7 +9,7 @@ import {
 export default class SessionController extends IController {
   public sessionTimeout?: number = undefined;
 
-  private sessionLogoutInterval: number = 600000; // in ms
+  private sessionLogoutInterval = 600000; // in ms
 
   constructor(main: MetriMaskController) {
     super('session', main);
@@ -33,7 +33,7 @@ export default class SessionController extends IController {
   public clearAllIntervals = () => {
     this.main.account.stopPolling();
     this.clearAllIntervalsExceptAccount();
-  }
+  };
 
   /*
    * Closes the current session and resets all the necessary session values.
@@ -43,14 +43,14 @@ export default class SessionController extends IController {
     this.main.token.resetTokenList();
     this.main.mrc721Token.resetTokenList();
     this.main.inpageAccount.sendInpageAccountAllPorts(METRIMASK_ACCOUNT_CHANGE.LOGOUT);
-  }
+  };
 
   private clearAllIntervalsExceptAccount = () => {
     this.main.token.stopPolling();
     this.main.mrc721Token.stopPolling();
     this.main.external.stopPolling();
     this.main.transaction.stopPolling();
-  }
+  };
 
   /*
    * Actions taken when the popup is opened.
@@ -58,7 +58,7 @@ export default class SessionController extends IController {
   private onPopupOpened = () => {
     // If port is reconnected (user reopened the popup), clear sessionTimeout
     clearTimeout(this.sessionTimeout);
-  }
+  };
 
   /*
    * Actions taken when the popup is closed..
@@ -75,7 +75,7 @@ export default class SessionController extends IController {
         console.log('Session cleared');
       }, this.sessionLogoutInterval);
     }
-  }
+  };
 
   private handleMessage = (
     request: any,
@@ -103,9 +103,9 @@ export default class SessionController extends IController {
         default:
           break;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      this.main.displayErrorOnPopup(err);
+      this.main.displayErrorOnPopup(err as Error);
     }
-  }
+  };
 }

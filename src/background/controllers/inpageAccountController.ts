@@ -3,6 +3,7 @@ import IController from './iController';
 import { MESSAGE_TYPE, PORT_NAME, METRIMASK_ACCOUNT_CHANGE } from '../../constants';
 import { InpageAccount } from '../../models/InpageAccount';
 
+
 export default class InpageAccountController extends IController {
 
   // All connected ports from content script
@@ -20,27 +21,28 @@ export default class InpageAccountController extends IController {
     for (const port of this.ports) {
       this.sendInpageAccount(port, statusChangeReason);
     }
-  }
+  };
 
   // bg -> content script
   public sendInpageAccount = (port: any, statusChangeReason: METRIMASK_ACCOUNT_CHANGE) => {
     port.postMessage({
       type: MESSAGE_TYPE.SEND_INPAGE_METRIMASK_ACCOUNT_VALUES,
-      accountWrapper: this.inpageAccountWrapper(statusChangeReason),
+      accountWrapper: this.inpageAccountWrapper(statusChangeReason)
     });
-  }
+  };
 
   private inpageAccountWrapper = (statusChangeReason: METRIMASK_ACCOUNT_CHANGE) => {
     const inpageAccount = new InpageAccount();
     if (this.main.account.loggedInAccount) {
       inpageAccount.loggedIn = true;
-      inpageAccount.name = this.main.account.loggedInAccount!.name;
+      inpageAccount.name = this.main.account.loggedInAccount.name;
       inpageAccount.network = this.main.network.networkName;
 
-      // loggedInAccount!.wallet is always defined if loggedInAccount is defined, but info may not be if the fetch request failed
-      if (this.main.account.loggedInAccount!.wallet!.info) {
-        inpageAccount.address = this.main.account.loggedInAccount!.wallet!.info!.addrStr;
-        inpageAccount.balance = this.main.account.loggedInAccount!.wallet!.info!.balance;
+      // loggedInAccount!.wallet is always defined if loggedInAccount is defined, but info may
+      // not be if the fetch request failed
+      if (this.main.account.loggedInAccount.wallet!.info) {
+        inpageAccount.address = this.main.account.loggedInAccount.wallet!.info.addrStr;
+        inpageAccount.balance = this.main.account.loggedInAccount.wallet!.info.balance;
       } else {
         return {
           account: null,
@@ -48,10 +50,10 @@ export default class InpageAccountController extends IController {
       }
     }
     return { account: inpageAccount, error: null, statusChangeReason };
-  }
+  };
 
   // when a port connects
-  private handleLongLivedConnection = (port: any) => {
+  private handleLongLivedConnection = (port: chrome.runtime.Port) => {
     if (port.name !== PORT_NAME.CONTENTSCRIPT) {
       return;
     }
@@ -67,13 +69,13 @@ export default class InpageAccountController extends IController {
         this.sendInpageAccount(port, METRIMASK_ACCOUNT_CHANGE.DAPP_CONNECTION);
       }
     });
-  }
+  };
 
   // remove disconnected port from ports array
-  private handleDisconnect = (port: any) => {
+  private handleDisconnect = (port: chrome.runtime.Port) => {
     const portIdx = this.ports.indexOf(port);
     if (portIdx !== -1) {
       this.ports.splice(portIdx, 1);
     }
-  }
+  };
 }

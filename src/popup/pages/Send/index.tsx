@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component } from 'react';
 import { Typography, Select, MenuItem, TextField, Button, withStyles, WithStyles } from '@material-ui/core';
 import { ArrowDropDown } from '@material-ui/icons';
@@ -60,7 +61,7 @@ class Send extends Component<WithStyles & IProps, {}> {
         this.props.store.sendStore.routeToSendConfirm();
       }
     });
-  }
+  };
 }
 
 const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any) => (

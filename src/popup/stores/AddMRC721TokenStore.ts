@@ -66,25 +66,25 @@ export default class AddMRC721TokenStore {
     this.app.routerStore.push('/account-detail');
     this.app.accountDetailStore.shouldScrollToBottom = true;
     this.setInitValues();
-  }
+  };
 
   @action
   public init = () => {
     chrome.runtime.onMessage.addListener(this.handleMessage);
-  }
+  };
 
   @action
   private setInitValues = () => {
     this.contractAddress = INIT_VALUES.contractAddress;
     this.resetTokenDetails();
-  }
+  };
 
   @action
   private resetTokenDetails = () => {
     this.name = INIT_VALUES.name;
     this.symbol = INIT_VALUES.symbol;
     this.getMRCTokenDetailsFailed = INIT_VALUES.getMRCTokenDetailsFailed;
-  }
+  };
 
   @action
   private handleMessage = (request: any) => {
@@ -101,5 +101,5 @@ export default class AddMRC721TokenStore {
       default:
         break;
     }
-  }
+  };
 }

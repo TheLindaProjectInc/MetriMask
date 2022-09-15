@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { networks, Network } from 'metrixjs-wallet';
 
 import MetriMaskController from '.';
@@ -31,7 +32,7 @@ export default class NetworkController extends IController {
     return NetworkController.NETWORKS[this.networkIndex].name;
   }
 
-  private networkIndex: number = 0;
+  private networkIndex = 0;
 
   constructor(main: MetriMaskController) {
     super('network', main);
@@ -61,7 +62,7 @@ export default class NetworkController extends IController {
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.CHANGE_NETWORK_SUCCESS, networkIndex });
       this.main.account.logoutAccount();
     }
-  }
+  };
 
   private handleMessage = (request: any, _: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     try {
@@ -87,9 +88,9 @@ export default class NetworkController extends IController {
         default:
           break;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       this.main.displayErrorOnPopup(err);
     }
-  }
+  };
 }

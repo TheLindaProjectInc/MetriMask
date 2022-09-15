@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { each, findIndex, isEmpty } from 'lodash';
 import BigNumber from 'bignumber.js';
 import { Insight } from 'metrixjs-wallet';
@@ -21,7 +23,7 @@ const INIT_VALUES = {
 const mweb3 = new Mweb3('window.metrimask.rpcProvider');
 
 export default class TokenController extends IController {
-  private static GET_BALANCES_INTERVAL_MS: number = 60000;
+  private static GET_BALANCES_INTERVAL_MS = 60000;
 
   public tokens?: MRCToken[] = INIT_VALUES.tokens;
 
@@ -36,7 +38,7 @@ export default class TokenController extends IController {
 
   public resetTokenList = () => {
     this.tokens = INIT_VALUES.tokens;
-  }
+  };
 
   /*
   * Init the token list based on the environment.
@@ -57,29 +59,29 @@ export default class TokenController extends IController {
         this.tokens = regtestTokenList;
       }
     });
-  }
+  };
 
   /*
   * Starts polling for periodic info updates.
   */
   public startPolling = async () => {
-    await this.getBalances();
+    this.getBalances();
     if (!this.getBalancesInterval) {
       this.getBalancesInterval = window.setInterval(() => {
         this.getBalances();
       }, TokenController.GET_BALANCES_INTERVAL_MS);
     }
-  }
+  };
 
   /*
   * Stops polling for the periodic info updates.
   */
-  public stopPolling = () => {
+  public stopPolling = async () => {
     if (this.getBalancesInterval) {
       clearInterval(this.getBalancesInterval);
       this.getBalancesInterval = undefined;
     }
-  }
+  };
 
   /*
   * Fetch the tokens balances via RPC calls.
@@ -88,7 +90,7 @@ export default class TokenController extends IController {
     each(this.tokens, async (token: MRCToken) => {
       await this.getMRCTokenBalance(token);
     });
-  }
+  };
 
   /*
   * Makes an RPC call to the contract to get the token balance of this current wallet address.
@@ -119,9 +121,10 @@ export default class TokenController extends IController {
 
     // Decode result
     const decodedRes = mweb3.decoder.decodeCall(result, mrc20TokenABI, methodName);
-    const bnBal = decodedRes!.executionResult.formattedOutput[0]; // Returns as a BN instance
-    const bigNumberBal = new BigNumber(bnBal.toString(10)); // Convert to BigNumber instance
-    const balance = bigNumberBal.dividedBy(new BigNumber(10 ** token.decimals)).toNumber(); // Convert to regular denomination
+    const bnBal = decodedRes.executionResult.formattedOutput[0]; // Returns as a BN instance
+    const bigNumberBal = new BigNumber(bnBal.toString(10) as BigNumber.Value); // Convert to BigNumber instance
+    // Convert to regular denomination
+    const balance = bigNumberBal.dividedBy(new BigNumber(10 ** token.decimals)).toNumber();
 
     // Update token balance in place
     const index = findIndex(this.tokens, { name: token.name, symbol: token.symbol });
@@ -130,10 +133,11 @@ export default class TokenController extends IController {
     }
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.MRC_TOKENS_RETURN, tokens: this.tokens });
-  }
+  };
 
   /**
    * Gets the MRC token details (name, symbol, decimals) given a contract address.
+   *
    * @param {string} contractAddress MRC token contract address.
    */
   private getMRCTokenDetails = async (contractAddress: string) => {
@@ -154,7 +158,7 @@ export default class TokenController extends IController {
         throw Error(error);
       }
       result = mweb3.decoder.decodeCall(result, mrc20TokenABI, methodName) as Insight.IContractCall;
-      const name = result.executionResult.formattedOutput[0];
+      const name: string = result.executionResult.formattedOutput[0];
 
       // Get symbol
       methodName = 'symbol';
@@ -164,7 +168,7 @@ export default class TokenController extends IController {
         throw Error(error);
       }
       result = mweb3.decoder.decodeCall(result, mrc20TokenABI, methodName) as Insight.IContractCall;
-      const symbol = result.executionResult.formattedOutput[0];
+      const symbol: string = result.executionResult.formattedOutput[0];
 
       // Get decimals
       methodName = 'decimals';
@@ -174,7 +178,7 @@ export default class TokenController extends IController {
         throw Error(error);
       }
       result = mweb3.decoder.decodeCall(result, mrc20TokenABI, methodName) as Insight.IContractCall;
-      const decimals = result.executionResult.formattedOutput[0];
+      const decimals: number = result.executionResult.formattedOutput[0];
 
       if (name && symbol && decimals) {
         const token = new MRCToken(name, symbol, decimals, contractAddress);
@@ -198,7 +202,7 @@ export default class TokenController extends IController {
     }
 
     chrome.runtime.sendMessage(msg);
-  }
+  };
 
   /*
   * Send MRC tokens.
@@ -223,20 +227,20 @@ export default class TokenController extends IController {
     }
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_SUCCESS });
-  }
+  };
 
   private addToken = async (contractAddress: string, name: string, symbol: string, decimals: number) => {
     const newToken = new MRCToken(name, symbol, decimals, contractAddress);
     this.tokens!.push(newToken);
     this.setTokenListInChromeStorage();
     await this.getMRCTokenBalance(newToken);
-  }
+  };
 
   private removeToken = (contractAddress: string) => {
     const index = findIndex(this.tokens, { address: contractAddress });
     this.tokens!.splice(index, 1);
     this.setTokenListInChromeStorage();
-  }
+  };
 
   private setTokenListInChromeStorage = () => {
     chrome.storage.local.set({
@@ -247,11 +251,11 @@ export default class TokenController extends IController {
         tokens: this.tokens,
       });
     });
-  }
+  };
 
   private chromeStorageAccountTokenListKey = () => {
     return `${STORAGE.ACCOUNT_TOKEN_LIST}-${this.main.account.loggedInAccount!.name}-${this.main.network.networkName}`;
-  }
+  };
 
   private handleMessage = (request: any, _: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     try {
@@ -274,9 +278,9 @@ export default class TokenController extends IController {
         default:
           break;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       this.main.displayErrorOnPopup(err);
     }
-  }
+  };
 }

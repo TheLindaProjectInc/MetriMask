@@ -65,7 +65,7 @@ export default class SendStore {
       if (this.token.symbol === 'MRX') {
         return this.maxMetrixSend;
       }
-      return this.token!.balance;
+      return this.token.balance;
     }
     return undefined;
   }
@@ -89,7 +89,7 @@ export default class SendStore {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.GET_MAX_MRX_SEND,
     });
-  }
+  };
 
   @action
   public changeToken = (tokenSymbol: string) => {
@@ -97,12 +97,12 @@ export default class SendStore {
     if (token) {
       this.token = token;
     }
-  }
+  };
 
   @action
   public routeToSendConfirm = () => {
     this.app.routerStore.push('/send-confirm');
-  }
+  };
 
   @action
   public send = () => {
@@ -128,7 +128,7 @@ export default class SendStore {
         gasPrice: Number(this.gasPrice),
       });
     }
-  }
+  };
 
   @action
   private handleMessage = (request: any) => {
@@ -149,5 +149,5 @@ export default class SendStore {
       default:
         break;
     }
-  }
+  };
 }

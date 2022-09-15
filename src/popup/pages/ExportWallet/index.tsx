@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component, FC } from 'react';
 import { Typography,
   Button,

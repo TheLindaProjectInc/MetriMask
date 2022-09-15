@@ -16,7 +16,7 @@ export default class CryptoController extends IController {
     if (!this.passwordHash) {
       throw Error('passwordHash should be defined');
     }
-    return this.passwordHash!;
+    return this.passwordHash;
   }
 
   private appSalt?: Uint8Array = INIT_VALUES.appSalt;
@@ -27,7 +27,7 @@ export default class CryptoController extends IController {
 
     chrome.storage.local.get([STORAGE.APP_SALT], ({ appSalt }: any) => {
       if (!isEmpty(appSalt)) {
-        const array = split(appSalt, ',').map((str) => parseInt(str, 10));
+        const array = split(appSalt as string, ',').map((str) => parseInt(str, 10));
         this.appSalt =  Uint8Array.from(array);
       }
 
@@ -41,7 +41,7 @@ export default class CryptoController extends IController {
 
   public resetPasswordHash = () => {
     this.passwordHash = INIT_VALUES.passwordHash;
-  }
+  };
 
   /*
   * Generates the one-time created appSalt (if necessary) used to encrypt the user password.
@@ -49,7 +49,7 @@ export default class CryptoController extends IController {
   public generateAppSaltIfNecessary = () => {
     try {
       if (!this.appSalt) {
-        const appSalt: Uint8Array = window.crypto.getRandomValues(new Uint8Array(16)) as Uint8Array;
+        const appSalt: Uint8Array = window.crypto.getRandomValues(new Uint8Array(16)) ;
         this.appSalt = appSalt;
         chrome.storage.local.set(
           { [STORAGE.APP_SALT]: appSalt.toString() },
@@ -59,7 +59,7 @@ export default class CryptoController extends IController {
     } catch (err) {
       throw Error('Error generating appSalt');
     }
-  }
+  };
 
   /*
   * Derives the password hash with the password input.
@@ -92,5 +92,5 @@ export default class CryptoController extends IController {
         finish();
       };
     }
-  }
+  };
 }

@@ -15,7 +15,7 @@ export default class MainContainerStore {
   @action
   public init = () => {
     chrome.runtime.onMessage.addListener(this.handleMessage);
-  }
+  };
 
   @action
   private handleMessage = (request: any) => {
@@ -68,5 +68,5 @@ export default class MainContainerStore {
       default:
         break;
     }
-  }
+  };
 }

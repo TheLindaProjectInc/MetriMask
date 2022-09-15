@@ -26,7 +26,7 @@ class MainAccount extends Component<WithStyles & IProps, {}> {
         break;
       }
     }
-  }
+  };
 
   public render() {
     const { classes } = this.props;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component } from 'react';
 import { inject, observer } from 'mobx-react';
 import { Typography, withStyles, Button, WithStyles } from '@material-ui/core';

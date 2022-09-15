@@ -1,4 +1,9 @@
-import { IRPCCallPendingRequest, IRPCCallRequest, IRPCCallResponse, IRPCSignMessageRequest, IRPCVerifyMessageRequest } from '../types';
+import {
+  IRPCCallPendingRequest,
+  IRPCCallRequest,
+  IRPCCallResponse,
+  IRPCSignMessageRequest,
+  IRPCVerifyMessageRequest } from '../types';
 import { TARGET_NAME, API_TYPE } from '../constants';
 import { generateRequestId } from '../utils';
 import { postWindowMessage } from '../utils/messenger';
@@ -14,7 +19,7 @@ export class MetriMaskRPCProvider {
         payload: { id, method, args },
       });
     });
-  }
+  };
 
   public signMessage = (args: any []) => {
     return new Promise((resolve, reject) => {
@@ -24,7 +29,7 @@ export class MetriMaskRPCProvider {
         payload: { id, args },
       });
     });
-  }
+  };
 
   public verifyMessage = (args: any []) => {
     return new Promise((resolve, reject) => {
@@ -34,7 +39,7 @@ export class MetriMaskRPCProvider {
         payload: { id, args },
       });
     });
-  }
+  };
 
   /**
    * @param response.error {string}
@@ -57,11 +62,11 @@ export class MetriMaskRPCProvider {
     }
 
     request.resolve(response.result);
-  }
+  };
 
   private trackRequest = (resolve: any, reject: any): string => {
     const id = generateRequestId();
     this.requests[id] = { resolve, reject };
     return id;
-  }
+  };
 }

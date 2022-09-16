@@ -34,7 +34,7 @@ export default class AccountLoginStore {
    * creating the first account for a network.
    */
   @action
-  public getAccounts = (validateNetwork: boolean = false) => {
+  public getAccounts = (validateNetwork = false) => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_ACCOUNTS }, (response: any) => {
       if (!isEmpty(response)) {
         this.accounts = response;
@@ -45,24 +45,24 @@ export default class AccountLoginStore {
         }
       }
     });
-  }
+  };
 
-  /**
-   * In some rare instances, the user can navigate to the AccountLogin page while on a
-   * network that does not have accounts.
-   * Ex: Import testnet wallet
-   *    -> on AccountLogin page switch to mainnet (must do this without having imported a mainnet acct)
-   *    -> takes you to the CreateWallet page
-   *    -> navigate back to AccountLogin page
-   * Without the validateNetwork method below this would show the testnet accounts even
-   * though we are on mainnet, and is an invalid application state so we resolve it by
-   * changing the network to that of the selectedWallet.
-   */
+/**
+ * In some rare instances, the user can navigate to the AccountLogin page while on a
+ * network that does not have accounts.
+ * Ex: Import testnet wallet
+ * -> on AccountLogin page switch to mainnet (must do this without having imported a mainnet acct)
+ * -> takes you to the CreateWallet page
+ * -> navigate back to AccountLogin page
+ * Without the validateNetwork method below this would show the testnet accounts even
+ * though we are on mainnet, and is an invalid application state so we resolve it by
+ * changing the network to that of the selectedWallet.
+ */
   public validateNetwork = () => {
     if (this.app.sessionStore.networkIndex !== this.selectedWalletNetworkIndex) {
       this.app.navBarStore.changeNetwork(this.selectedWalletNetworkIndex);
     }
-  }
+  };
 
   @action
   public setSelectedWallet = () => {
@@ -70,7 +70,7 @@ export default class AccountLoginStore {
       this.selectedWalletName = this.accounts[0].name;
       this.selectedWalletNetworkIndex = this.app.sessionStore.networkIndex;
     }
-  }
+  };
 
   @action
   public loginAccount = () => {
@@ -79,13 +79,13 @@ export default class AccountLoginStore {
       type: MESSAGE_TYPE.ACCOUNT_LOGIN,
       selectedWalletName: this.selectedWalletName,
     });
-  }
+  };
 
   @action
   public routeToCreateWallet = () => {
     this.app.routerStore.push('/create-wallet');
-  }
+  };
 
   @action
-  public reset = () => Object.assign(this, INIT_VALUES)
+  public reset = () => Object.assign(this, INIT_VALUES);
 }

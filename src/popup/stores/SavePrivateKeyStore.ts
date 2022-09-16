@@ -34,12 +34,12 @@ export default class SavePrivateKeyStore {
   @action
   public init = () => {
     chrome.runtime.onMessage.addListener(this.handleMessage);
-  }
+  };
 
   public deinit = () => {
     this.reset();
     chrome.runtime.onMessage.removeListener(this.handleMessage);
-  }
+  };
 
   confirmLogin = () => {
     if (this.error === false) {
@@ -49,7 +49,7 @@ export default class SavePrivateKeyStore {
           password: this.password
       });
     }
-  }
+  };
 
   savePrivateKey = () => {
     this.app.routerStore.push('/loading');
@@ -58,10 +58,10 @@ export default class SavePrivateKeyStore {
         accountName: this.walletName,
         key: this.privateKey
     });
-  }
+  };
 
   @action
-  public reset = () => Object.assign(this, INIT_VALUES)
+  public reset = () => Object.assign(this, INIT_VALUES);
 
   @action
   private handleMessage = (request: any) => {
@@ -74,5 +74,5 @@ export default class SavePrivateKeyStore {
       default:
         break;
     }
-  }
+  };
 }

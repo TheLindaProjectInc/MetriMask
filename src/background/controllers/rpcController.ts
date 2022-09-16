@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/require-await */
 const bitcoin = require('bitcoinjs-lib');
 import { WalletRPCProvider, Insight, Wallet } from 'metrixjs-wallet';
 import metrixMessage from 'bitcoinjs-message';
@@ -51,13 +53,13 @@ export default class RPCController extends IController {
         gasPrice * 1e-8 || DEFAULT_GAS_PRICE,
       ];
       result = await this.main.account.loggedInAccount!.wallet!.sendTransaction(newArgs) as Insight.ISendRawTxResult;
-    } catch (err) {
+    } catch (err: any) {
       error = err.message;
       console.error(error);
     }
 
     return { id, result, error };
-  }
+  };
 
   /*
   * Executes a callcontract request.
@@ -77,13 +79,13 @@ export default class RPCController extends IController {
       }
 
       result = await rpcProvider.rawCall(RPC_METHOD.CALL_CONTRACT, args) as Insight.IContractCall;
-    } catch (err) {
+    } catch (err: any) {
       error = err.message;
       console.error(error);
     }
 
     return { id, result, error };
-  }
+  };
 
   /*
   * Gets the current logged in RPC provider.
@@ -92,10 +94,11 @@ export default class RPCController extends IController {
   private rpcProvider = (): WalletRPCProvider | undefined => {
     const acct = this.main.account.loggedInAccount;
     return acct && acct.wallet && acct.wallet.rpcProvider;
-  }
+  };
 
   /**
    * Sends the RPC response or error to the active tab that requested.
+   *
    * @param id Request ID.
    * @param result RPC call result.
    * @param error RPC call error.message, passed in and as a string because
@@ -105,7 +108,7 @@ export default class RPCController extends IController {
     chrome.tabs.query({ active: true, currentWindow: true }, ([{ id: tabID }]) => {
       chrome.tabs.sendMessage(tabID!, { type: MESSAGE_TYPE.EXTERNAL_RPC_CALL_RETURN, id, result, error });
     });
-  }
+  };
 
   /*
   * Handles a rawCall requested externally and sends the response back to the active tab.
@@ -123,12 +126,12 @@ export default class RPCController extends IController {
       }
 
       result = await rpcProvider.rawCall(method, args);
-    } catch (e) {
+    } catch (e: any) {
       error = e.message;
     }
 
     this.sendRpcResponseToActiveTab(id, result, error);
-  }
+  };
 
 
     /*
@@ -163,7 +166,7 @@ export default class RPCController extends IController {
         const keyHash = this.recoverFromPrivateKeyHash(this.main.account.loggedInAccount.privateKeyHash);
         const keyPair = bitcoin.ECPair.fromWIF(keyHash.toWIF(), this.main.network.network.info);
 
-        const message = args[1];
+        const message: string = args[1];
         const signedMessage = metrixMessage.sign(
           message,
           keyPair.privateKey,
@@ -175,11 +178,11 @@ export default class RPCController extends IController {
         if (signedMessage) {
           result = signedMessage.toString('base64');
         }
-      } catch(err) {
+      } catch(err: any) {
         error = err;
       }
       this.sendRpcResponseToActiveTab(id, result, error);
-  }
+  };
 
 
   /*
@@ -195,7 +198,7 @@ export default class RPCController extends IController {
       throw Error ('Not enough arguments supplied to verify message.');
     }
 
-    let result: boolean = false;
+    let result = false;
     let error: any;
 
     const message = args[0];
@@ -215,12 +218,12 @@ export default class RPCController extends IController {
 
     try {
       result = metrixMessage.verify(message, address, signature, prefix, checkSegwitAlways);
-    } catch(err) {
+    } catch(err: any) {
       error = err;
     }
 
     this.sendRpcResponseToActiveTab(id, result, error);
-  }
+  };
 
   private recoverFromPrivateKeyHash(privateKeyHash: string): Wallet {
     assert(privateKeyHash, 'invalid privateKeyHash');
@@ -246,7 +249,7 @@ export default class RPCController extends IController {
 
     const { result, error } = await this.sendToContract(id, args);
     this.sendRpcResponseToActiveTab(id, result, error);
-  }
+  };
 
   /*
   * Handles a callContract requested externally and sends the response back to the active tab.
@@ -260,7 +263,7 @@ export default class RPCController extends IController {
 
     const { result, error } = await this.callContract(id, args);
     this.sendRpcResponseToActiveTab(id, result, error);
-  }
+  };
 
   private handleMessage = (request: any, _: chrome.runtime.MessageSender) => {
     try {
@@ -283,9 +286,9 @@ export default class RPCController extends IController {
         default:
           break;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       this.main.displayErrorOnPopup(err);
     }
-  }
+  };
 }

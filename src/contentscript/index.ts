@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { IRPCSignMessageRequest, IRPCVerifyMessageRequest } from './../types.d';
 
 import { injectAllScripts } from './inject';
@@ -8,14 +9,8 @@ import { postWindowMessage } from '../utils/messenger';
 
 let port: any;
 
-// Add message listeners
-window.addEventListener('message', handleInPageMessage, false);
-chrome.runtime.onMessage.addListener(handleBackgroundScriptMessage);
-// Dapp developer triggers this event to set up window.metrimask
-window.addEventListener('message', setupLongLivedConnection, false);
-
 // Create a long-lived connection to the background page and inject content scripts
-async function setupLongLivedConnection(event: MessageEvent) {
+const setupLongLivedConnection = async (event: MessageEvent) => {
   if (event.data.message && event.data.message.type === API_TYPE.CONNECT_INPAGE_METRIMASK) {
     // Inject scripts
     await injectAllScripts();
@@ -47,7 +42,7 @@ async function setupLongLivedConnection(event: MessageEvent) {
       payload: {},
     });
   }
-}
+};
 
 /*
 * This only partially resets the webpage to its pre-connected state. We remove the
@@ -58,7 +53,7 @@ async function setupLongLivedConnection(event: MessageEvent) {
 * And as long as the dapp implements the handleMetriMaskInstalledOrUpdated event
 * listener, the page will be refreshed if MetriMask is reinstalled.
 */
-function handlePortDisconnected() {
+const handlePortDisconnected = () => {
   window.removeEventListener('message', handleInPageMessage, false);
   window.removeEventListener('message', setupLongLivedConnection, false);
 
@@ -66,9 +61,9 @@ function handlePortDisconnected() {
     type: API_TYPE.PORT_DISCONNECTED,
     payload: {},
   });
-}
+};
 
-function handleRPCRequest(message: IRPCCallRequest) {
+const handleRPCRequest = (message: IRPCCallRequest) => {
   const { method, args, id } = message;
 
   // Check for logged in account first
@@ -104,9 +99,9 @@ function handleRPCRequest(message: IRPCCallRequest) {
         throw Error('Unhandled RPC method.');
     }
   });
-}
+};
 
-function handleRPCSignMessageRequest(message: IRPCSignMessageRequest) {
+const handleRPCSignMessageRequest = (message: IRPCSignMessageRequest) => {
   const { id } = message;
 
   // Check for logged in account first
@@ -132,9 +127,9 @@ function handleRPCSignMessageRequest(message: IRPCSignMessageRequest) {
       },
     });
   });
-}
+};
 
-function handleRPCVerifyMessageRequest(message: IRPCVerifyMessageRequest) {
+const handleRPCVerifyMessageRequest = (message: IRPCVerifyMessageRequest) => {
   const { id, args} = message;
 
   // Check for logged in account first
@@ -154,15 +149,15 @@ function handleRPCVerifyMessageRequest(message: IRPCVerifyMessageRequest) {
     // Background execte message verification
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.EXTERNAL_VERIFY_MESSAGE, id, args });
   });
-}
+};
 
 // Forwards the request to the bg script
-function forwardInpageAccountRequest() {
+const forwardInpageAccountRequest = () => {
   port.postMessage({ type: MESSAGE_TYPE.GET_INPAGE_METRIMASK_ACCOUNT_VALUES });
-}
+};
 
 // Handle messages sent from inpage -> content script(here) -> bg script
-function handleInPageMessage(event: MessageEvent) {
+const handleInPageMessage = (event: MessageEvent) => {
   if (isMessageNotValid(event, TARGET_NAME.CONTENTSCRIPT)) {
     return;
   }
@@ -182,12 +177,13 @@ function handleInPageMessage(event: MessageEvent) {
       forwardInpageAccountRequest();
       break;
     default:
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw Error(`Contentscript processing invalid type: ${message}`);
   }
-}
+};
 
 // Handle messages sent from bg script -> content script(here) -> inpage
-function handleBackgroundScriptMessage(message: any) {
+const handleBackgroundScriptMessage = (message: any) => {
   switch (message.type) {
     case MESSAGE_TYPE.EXTERNAL_RPC_CALL_RETURN:
       postWindowMessage<IRPCCallResponse>(TARGET_NAME.INPAGE, {
@@ -198,4 +194,10 @@ function handleBackgroundScriptMessage(message: any) {
     default:
       break;
   }
-}
+};
+
+// Add message listeners
+window.addEventListener('message', handleInPageMessage, false);
+chrome.runtime.onMessage.addListener(handleBackgroundScriptMessage);
+// Dapp developer triggers this event to set up window.metrimask
+window.addEventListener('message', setupLongLivedConnection, false);

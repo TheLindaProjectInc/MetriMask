@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Fragment } from 'react';
 import { inject, observer } from 'mobx-react';
 

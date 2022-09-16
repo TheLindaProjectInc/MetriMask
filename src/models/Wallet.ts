@@ -48,12 +48,12 @@ export default class Wallet implements ISigner {
         this.info = newInfo;
         return true;
       }
-    } catch (e) {
-      throw(Error(e));
+    } catch (e: any) {
+      throw(Error(e as string));
     }
 
     return false;
-  }
+  };
 
   // @param amount: (unit - whole MRX)
   public send = async (to: string, amount: number, options: ISendTxOptions): Promise<Insight.ISendRawTxResult> => {
@@ -62,8 +62,8 @@ export default class Wallet implements ISigner {
     }
 
     // convert amount units from whole MRX => SATOSHI MRX
-    return await this.mjsWallet!.send(to, amount * 1e8, { feeRate: options.feeRate });
-  }
+    return await this.mjsWallet.send(to, amount * 1e8, { feeRate: options.feeRate });
+  };
 
   public sendTransaction = async (args: any[]): Promise<any> => {
     if (!this.rpcProvider) {
@@ -74,11 +74,11 @@ export default class Wallet implements ISigner {
     }
 
     try {
-      return await this.rpcProvider!.rawCall(RPC_METHOD.SEND_TO_CONTRACT, args);
+      return await this.rpcProvider.rawCall(RPC_METHOD.SEND_TO_CONTRACT, args);
     } catch (err) {
       throw err;
     }
-  }
+  };
 
   public calcMaxMetrixSend = async (networkName: string) => {
     if (!this.mjsWallet || !this.info) {
@@ -86,7 +86,7 @@ export default class Wallet implements ISigner {
     }
     this.maxMetrixSend = await this.mjsWallet.sendEstimateMaxValue(this.maxMetrixSendToAddress(networkName));
     return this.maxMetrixSend;
-  }
+  };
 
   /**
    * We just need to pass a valid sendTo address belonging to that network for the
@@ -97,5 +97,5 @@ export default class Wallet implements ISigner {
   private maxMetrixSendToAddress = (networkName: string) => {
     return networkName === NETWORK_NAMES.MAINNET ?
       'MRAfR46kJcDmURC845rSAohhJmrCfYyvPA' : 'mRGB6pSk4bY1PNxawHYWt12N5sfiyKnBa3';
-  }
+  };
 }

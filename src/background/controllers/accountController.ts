@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/require-await */
 import { isEmpty, find, cloneDeep } from 'lodash';
 import { Wallet as MetrixWallet } from 'metrixjs-wallet';
 import assert from 'assert';
@@ -8,6 +10,7 @@ import { MESSAGE_TYPE, STORAGE, NETWORK_NAMES, METRIMASK_ACCOUNT_CHANGE } from '
 import Account from '../../models/Account';
 import Wallet from '../../models/Wallet';
 import { TRANSACTION_SPEED } from '../../constants';
+import { IScryptParams } from 'metrixjs-wallet/lib/scrypt';
 
 const INIT_VALUES = {
   mainnetAccounts: [],
@@ -18,8 +21,8 @@ const INIT_VALUES = {
 };
 
 export default class AccountController extends IController {
-  private static SCRYPT_PARAMS_PRIV_KEY: any = { N: 8192, r: 8, p: 1 };
-  private static GET_INFO_INTERVAL_MS: number = 30000;
+  private static SCRYPT_PARAMS_PRIV_KEY: IScryptParams = { N: 8192, r: 8, p: 1 };
+  private static GET_INFO_INTERVAL_MS = 30000;
 
   public get accounts(): Account[] {
     if (this.main.network.networkName === NETWORK_NAMES.MAINNET) {
@@ -71,26 +74,26 @@ export default class AccountController extends IController {
   */
   public isWalletNameTaken = (name: string): boolean => {
     return !!find(this.accounts, { name });
-  }
+  };
 
   /*
   * Resets the account vars back to initial state.
   */
   public resetAccount = () => {
     this.loggedInAccount = INIT_VALUES.loggedInAccount;
-  }
+  };
 
   /*
   * Initial login with the master password and routing to the correct account login page.
   */
-  public login = async (password: string) => {
+  public login = async ( password: string) => {
     this.main.crypto.generateAppSaltIfNecessary();
     this.main.crypto.derivePasswordHash(password, this.finishLogin);
-  }
+  };
 
   public confirmLogin = (password: string) => {
     this.main.crypto.derivePasswordHash(password, this.finishConfirmLogin);
-  }
+  };
 
   public finishLogin = async () => {
     if (!this.hasAccounts) {
@@ -106,7 +109,7 @@ export default class AccountController extends IController {
     }
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.LOGIN_FAILURE });
-  }
+  };
 
   public finishConfirmLogin = async () => {
     if (!this.hasAccounts) {
@@ -120,7 +123,7 @@ export default class AccountController extends IController {
     }
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.LOGIN_CONFIRM_FAILURE });
-  }
+  };
 
   /*
   * Creates an account, stores it, and logs in.
@@ -151,7 +154,7 @@ export default class AccountController extends IController {
     }, () => console.log(this.main.network.networkName, 'Account added', prunedAcct));
 
     await this.onAccountLoggedIn();
-  }
+  };
 
   /*
   * Imports a new wallet from mnemonic.
@@ -174,7 +177,7 @@ export default class AccountController extends IController {
     }
 
     await this.addAccountAndLogin(accountName, privateKeyHash, wallet);
-  }
+  };
 
   /*
   * Imports a new wallet from private key.
@@ -198,7 +201,7 @@ export default class AccountController extends IController {
     }
 
     await this.addAccountAndLogin(accountName, privateKeyHash, wallet);
-  }
+  };
 
   /*
   * Saves the generated mnemonic to a file and creates a new account.
@@ -222,7 +225,7 @@ export default class AccountController extends IController {
     element.click();
 
     this.importMnemonic(accountName, mnemonic);
-  }
+  };
 
   /*
   * Finds the account based on the name and logs in.
@@ -245,7 +248,7 @@ export default class AccountController extends IController {
       this.resetAccount();
       throw err;
     }
-  }
+  };
 
   /*
   * Logs out of the current account and routes back to the account login.
@@ -254,7 +257,7 @@ export default class AccountController extends IController {
     this.main.session.clearAllIntervals();
     this.main.session.clearSession();
     this.routeToAccountPage();
-  }
+  };
 
   /*
   * Routes to the CreateWallet or AccountLogin page after unlocking with the password.
@@ -267,11 +270,11 @@ export default class AccountController extends IController {
       // Accounts found, route to Account Login page
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.LOGIN_SUCCESS_WITH_ACCOUNTS });
     }
-  }
+  };
 
   public routeToSavePrivateKeyPage = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.LOGIN_CONFIRM_SUCCESS });
-  }
+  };
 
   /*
   * Actions after adding a new account or logging into an existing account.
@@ -301,7 +304,7 @@ export default class AccountController extends IController {
       this.main.inpageAccount.sendInpageAccountAllPorts(METRIMASK_ACCOUNT_CHANGE.LOGIN);
     }
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.ACCOUNT_LOGIN_SUCCESS });
-  }
+  };
 
   /*
   * Stops polling for the periodic info updates.
@@ -311,7 +314,7 @@ export default class AccountController extends IController {
       clearInterval(this.getInfoInterval);
       this.getInfoInterval = undefined;
     }
-  }
+  };
 
   /*
   * Recovers the wallet instance from an encrypted private key.
@@ -370,7 +373,7 @@ export default class AccountController extends IController {
       */
     }
     return false;
-  }
+  };
 
   /*
   * Checks if a wallet is already in the mainnet or testnet accounts list.
@@ -379,7 +382,7 @@ export default class AccountController extends IController {
   */
   private walletAlreadyExists = async (privateKeyHash: string): Promise<boolean> => {
     return !!find(this.accounts, { privateKeyHash });
-  }
+  };
 
   /*
   * Fetches the wallet info from the current wallet instance.
@@ -400,7 +403,7 @@ export default class AccountController extends IController {
 
       this.updateAndSendMaxMetrixAmountToPopup();
     }
-  }
+  };
 
   /*
   * Starts polling for periodic info updates.
@@ -411,7 +414,7 @@ export default class AccountController extends IController {
         this.getWalletInfo();
       }, AccountController.GET_INFO_INTERVAL_MS);
     }
-  }
+  };
 
   /*
   * Executes a sendtoaddress.
@@ -445,7 +448,7 @@ export default class AccountController extends IController {
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_FAILURE, error: err });
       throw (err);
     }
-  }
+  };
 
   /**
    * We update the maxMetrix amount under 2 scnearios
@@ -464,9 +467,9 @@ export default class AccountController extends IController {
     const calcMQSPr = this.loggedInAccount.wallet.calcMaxMetrixSend(this.main.network.networkName);
     calcMQSPr.then(() => {
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MAX_MRX_SEND_RETURN,
-        maxMetrixAmount: this.loggedInAccount!.wallet!.maxMetrixSend });
+        maxMetrixAmount: this.loggedInAccount!.wallet!.maxMetrixSend});
     });
-  }
+  };
 
   private handleMessage = async (
     request: any,
@@ -510,7 +513,7 @@ export default class AccountController extends IController {
           break;
         case MESSAGE_TYPE.GET_LOGGED_IN_ACCOUNT:
           sendResponse(this.loggedInAccount && this.loggedInAccount.wallet && this.loggedInAccount.wallet.info
-            ? { name: this.loggedInAccount.name, address: this.loggedInAccount!.wallet!.info!.addrStr }
+            ? { name: this.loggedInAccount.name, address: this.loggedInAccount.wallet.info.addrStr }
             : undefined);
           break;
         case MESSAGE_TYPE.GET_LOGGED_IN_ACCOUNT_NAME:
@@ -533,9 +536,9 @@ export default class AccountController extends IController {
         default:
           break;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       this.main.displayErrorOnPopup(err);
     }
-  }
+  };
 }

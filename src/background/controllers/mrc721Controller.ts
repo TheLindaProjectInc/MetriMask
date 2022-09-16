@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { each, findIndex, isEmpty } from 'lodash';
 import BigNumber from 'bignumber.js';
 import { Insight } from 'metrixjs-wallet';
@@ -21,7 +23,7 @@ const INIT_VALUES = {
 const mweb3 = new Mweb3('window.metrimask.rpcProvider');
 
 export default class Mrc721Controller extends IController {
-  private static GET_BALANCES_INTERVAL_MS: number = 60000;
+  private static GET_BALANCES_INTERVAL_MS = 60000;
 
   public mrc721tokens?: MRC721Token[] = INIT_VALUES.mrc721tokens;
 
@@ -36,7 +38,7 @@ export default class Mrc721Controller extends IController {
 
   public resetTokenList = () => {
     this.mrc721tokens = INIT_VALUES.mrc721tokens;
-  }
+  };
 
   /*
   * Init the token list based on the environment.
@@ -57,29 +59,29 @@ export default class Mrc721Controller extends IController {
         this.mrc721tokens = regtestMrc721TokenList;
       }
     });
-  }
+  };
 
   /*
   * Starts polling for periodic info updates.
   */
   public startPolling = async () => {
-    await this.getBalances();
+    this.getBalances();
     if (!this.getBalancesInterval) {
       this.getBalancesInterval = window.setInterval(() => {
         this.getBalances();
       }, Mrc721Controller.GET_BALANCES_INTERVAL_MS);
     }
-  }
+  };
 
   /*
   * Stops polling for the periodic info updates.
   */
-  public stopPolling = () => {
+  public stopPolling = async () => {
     if (this.getBalancesInterval) {
       clearInterval(this.getBalancesInterval);
       this.getBalancesInterval = undefined;
     }
-  }
+  };
 
   /*
   * Fetch the tokens balances via RPC calls.
@@ -88,7 +90,7 @@ export default class Mrc721Controller extends IController {
     each(this.mrc721tokens, async (mrc721token: MRC721Token) => {
       await this.getMRCTokenBalance(mrc721token);
     });
-  }
+  };
 
   /*
   * Makes an RPC call to the contract to get the token balance of this current wallet address.
@@ -119,8 +121,8 @@ export default class Mrc721Controller extends IController {
 
     // Decode result
     const decodedRes = mweb3.decoder.decodeCall(result, mrc721TokenABI, methodName);
-    const bnBal = decodedRes!.executionResult.formattedOutput[0]; // Returns as a BN instance
-    const bigNumberBal = new BigNumber(bnBal.toString(10)); // Convert to BigNumber instance
+    const bnBal = decodedRes.executionResult.formattedOutput[0]; // Returns as a BN instance
+    const bigNumberBal = new BigNumber(bnBal.toString(10) as BigNumber.Value); // Convert to BigNumber instance
     const balance = bigNumberBal.toNumber(); // Convert to regular denomination
 
     // Update token balance in place
@@ -130,10 +132,11 @@ export default class Mrc721Controller extends IController {
     }
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.MRC721_TOKENS_RETURN, mrc721tokens: this.mrc721tokens });
-  }
+  };
 
   /**
    * Gets the MRC token details (name, symbol, supportsInterface) given a contract address.
+   *
    * @param {string} contractAddress MRC token contract address.
    */
   private getMRCTokenDetails = async (contractAddress: string) => {
@@ -154,7 +157,7 @@ export default class Mrc721Controller extends IController {
         throw Error(error);
       }
       result = mweb3.decoder.decodeCall(result, mrc721TokenABI, methodName) as Insight.IContractCall;
-      const name = result.executionResult.formattedOutput[0];
+      const name: string = result.executionResult.formattedOutput[0];
 
       // Get symbol
       methodName = 'symbol';
@@ -164,12 +167,13 @@ export default class Mrc721Controller extends IController {
         throw Error(error);
       }
       result = mweb3.decoder.decodeCall(result, mrc721TokenABI, methodName) as Insight.IContractCall;
-      const symbol = result.executionResult.formattedOutput[0];
+      const symbol: string = result.executionResult.formattedOutput[0];
 
       // Get supportsInterface (Only MRC720 has this)
       methodName = 'supportsInterface';
 
-      // TODO: Fix this!! Correctly detects a bytes4 input but then does stringToHex conversion that results in incorrect hex rather than expected 80ac58cd.
+      // TODO: Fix this!! Correctly detects a bytes4 input but then does stringToHex conversion that results
+      // in incorrect hex rather than expected 80ac58cd.
       // For now just manually call the correct data query.
       // data = mweb3.encoder.constructData(mrc721TokenABI, methodName, ['']);
       data = '01ffc9a780ac58cd00000000000000000000000000000000000000000000000000000000';
@@ -202,7 +206,7 @@ export default class Mrc721Controller extends IController {
     }
 
     chrome.runtime.sendMessage(msg);
-  }
+  };
 
   /*
   * Send MRC tokens.
@@ -234,13 +238,13 @@ export default class Mrc721Controller extends IController {
     this.mrc721tokens!.push(newMrc721Token);
     this.setTokenListInChromeStorage();
     await this.getMRCTokenBalance(newMrc721Token);
-  }
+  };
 
   private removeToken = (contractAddress: string) => {
     const index = findIndex(this.mrc721tokens, { address: contractAddress });
     this.mrc721tokens!.splice(index, 1);
     this.setTokenListInChromeStorage();
-  }
+  };
 
   private setTokenListInChromeStorage = () => {
     chrome.storage.local.set({
@@ -251,11 +255,11 @@ export default class Mrc721Controller extends IController {
         mrc721tokens: this.mrc721tokens,
       });
     });
-  }
+  };
 
   private chromeStorageAccountTokenListKey = () => {
     return `${STORAGE.ACCOUNT_MRC721_TOKEN_LIST}-${this.main.account.loggedInAccount!.name}-${this.main.network.networkName}`;
-  }
+  };
 
   private handleMessage = (request: any, _: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     try {
@@ -264,7 +268,8 @@ export default class Mrc721Controller extends IController {
           sendResponse(this.mrc721tokens);
           break;
         // case MESSAGE_TYPE.SEND_MRC721_TOKENS:
-        //   this.sendMRCToken(request.receiverAddress, request.amount, request.token, request.gasLimit, request.gasPrice);
+        //   this.sendMRCToken(request.receiverAddress, request.amount, request.token, request.gasLimit,
+        //   request.gasPrice);
         //   break;
         case MESSAGE_TYPE.ADD_MRC721_TOKEN:
           this.addToken(request.contractAddress, request.name, request.symbol);
@@ -278,9 +283,9 @@ export default class Mrc721Controller extends IController {
         default:
           break;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       this.main.displayErrorOnPopup(err);
     }
-  }
+  };
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { IExtensionAPIMessage, IRPCCallRequest } from '../types';
 import { TARGET_NAME, API_TYPE } from '../constants';
 import { MetriMaskRPCProvider } from './MetriMaskRPCProvider';
@@ -14,22 +15,15 @@ let metrimask: any = {
 let signTxUrl: string;
 let signMessageUrl: string;
 
-// Add message listeners
-window.addEventListener('message', handleInpageMessage, false);
-
-// expose apis
-Object.assign(window, {
-  metrimask,
-});
-
-function handlePortDisconnected() {
+const handlePortDisconnected = () => {
   metrimask = undefined;
   Object.assign(window, { metrimask });
   window.removeEventListener('message', handleInpageMessage, false);
-}
+};
 
 /**
  * Handles the sendToContract request originating from the MetriMaskRPCProvider and opens the sign tx window.
+ *
  * @param request SendToContract request.
  */
 const handleSendToContractRequest = (request: IRPCCallRequest) => {
@@ -38,13 +32,14 @@ const handleSendToContractRequest = (request: IRPCCallRequest) => {
 
 /**
  * Handles the SignMessage request originating from the MetriMaskRPCProvider and opens the sign message window.
+ *
  * @param request SendToContract request.
  */
  const handleSignMessageRequest = (request: IRPCCallRequest) => {
   showSignMessageWindow({ url: signMessageUrl, request });
 };
 
-function handleInpageMessage(event: MessageEvent) {
+const handleInpageMessage = (event: MessageEvent) => {
   if (isMessageNotValid(event, TARGET_NAME.INPAGE)) {
     return;
   }
@@ -78,6 +73,15 @@ function handleInpageMessage(event: MessageEvent) {
       handlePortDisconnected();
       break;
     default:
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw Error(`Inpage processing invalid type: ${message}`);
   }
-}
+};
+
+// Add message listeners
+window.addEventListener('message', handleInpageMessage, false);
+
+// expose apis
+Object.assign(window, {
+  metrimask,
+});

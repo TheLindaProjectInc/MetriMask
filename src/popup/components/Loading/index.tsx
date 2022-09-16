@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React from 'react';
 import { Typography, withStyles } from '@material-ui/core';
 import cx from 'classnames';

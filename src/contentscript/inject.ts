@@ -1,7 +1,7 @@
 import { API_TYPE, TARGET_NAME } from '../constants';
 import { postWindowMessage } from '../utils/messenger';
 
-function injectScript(src: string) {
+const injectScript = (src: string) => {
   return new Promise<void>((resolve) => {
     const scriptElement = document.createElement('script');
     const headOrDocumentElement = document.head || document.documentElement;
@@ -10,9 +10,9 @@ function injectScript(src: string) {
     scriptElement.src = src;
     headOrDocumentElement.insertAdjacentElement('afterbegin', scriptElement);
   });
-}
+};
 
-function injectStylesheet(src: string) {
+const injectStylesheet = (src: string) => {
   return new Promise<void>((resolve) => {
     const styleElement = document.createElement('link');
     const headOrDocumentElement = document.head || document.documentElement;
@@ -22,9 +22,9 @@ function injectStylesheet(src: string) {
     styleElement.href = src;
     headOrDocumentElement.insertAdjacentElement('afterbegin', styleElement);
   });
-}
+};
 
-export async function injectAllScripts() {
+export const injectAllScripts = async () => {
   await injectScript(chrome.extension.getURL('commons.all.js')).then(async () => {
     await injectScript(chrome.extension.getURL('commons.exclude-background.js'));
     await injectScript(chrome.extension.getURL('commons.exclude-contentscript.js'));
@@ -50,4 +50,4 @@ export async function injectAllScripts() {
   });
 
   injectStylesheet(chrome.extension.getURL('css/modal.css'));
-}
+};

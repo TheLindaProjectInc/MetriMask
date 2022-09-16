@@ -1,6 +1,7 @@
 const path = require('path');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
 const autoprefixer = require('autoprefixer');
 
 const styleLoaders = {
@@ -32,6 +33,11 @@ const styleLoaders = {
   ],
 }
 
+const options = {
+  extensions: [`.ts`, `.tsx`],
+  files: [ path.resolve(__dirname, './src') ]
+}
+
 module.exports = {
   entry: {
     background: './src/background/index.ts',
@@ -61,12 +67,6 @@ module.exports = {
         parser: {
           amd: false,
         }
-      },
-      {
-        test: /\.(ts|tsx)$/,
-        loaders: require.resolve('tslint-loader'),
-        enforce: 'pre',
-        include: path.resolve(__dirname, './src'),
       },
       {
         oneOf: [
@@ -121,5 +121,6 @@ module.exports = {
     new CopyWebpackPlugin([
       { from: 'static' },
     ]),
+    new ESLintPlugin(options)
   ],
 }

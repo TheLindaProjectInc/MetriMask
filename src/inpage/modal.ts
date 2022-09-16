@@ -1,20 +1,20 @@
-function hasClass(element: HTMLElement, cls: string) {
+const hasClass = (element: HTMLElement, cls: string) => {
   return !!element.className.match(new RegExp( '(\\s|^)' + cls + '(\\s|$)'));
-}
+};
 
-function addClass(element: HTMLElement, cls: string) {
+const addClass = (element: HTMLElement, cls: string) => {
   if (!hasClass(element, cls)) {
     element.className += ' ' + cls;
   }
-}
+};
 
-function removeClass(element: HTMLElement, cls: string) {
+const removeClass = (element: HTMLElement, cls: string) => {
   if (hasClass(element, cls)) {
     element.className = element.className.replace(new RegExp('(\\s|^)' + cls + '(\\s|$)' ), ' ');
   }
-}
+};
 
-function getHeight(element: HTMLElement) {
+const getHeight = (element: HTMLElement) => {
   let height = element.offsetHeight;
   const which = ['Top', 'Bottom'];
 
@@ -25,14 +25,14 @@ function getHeight(element: HTMLElement) {
   const styles = window.getComputedStyle(element, null);
 
   which.forEach((name) => {
-    height -= parseFloat(styles['border' + name + 'Width']) || 0;
-    height -= parseFloat(styles['padding' + name]) || 0;
+    height -= parseFloat(styles['border' + name + 'Width'] as string) || 0;
+    height -= parseFloat(styles['padding' + name] as string) || 0;
   });
 
   return height;
-}
+};
 
-export function showModal(width: number, height: number, style: any = {}, src?: string): Promise<HTMLIFrameElement> {
+export const showModal = (width: number, height: number, style: any = {}, src?: string): Promise<HTMLIFrameElement> => {
   const iframe = document.createElement('iframe');
 
   addClass(iframe, 'metrimask-extension-modal');
@@ -47,15 +47,15 @@ export function showModal(width: number, height: number, style: any = {}, src?: 
 
   const bodyHeight = getHeight(body);
 
-  backdrop.style.height = bodyHeight + 'px';
+  backdrop.style.height = bodyHeight.toString() + 'px';
 
   Object.assign(iframe.style, {
     ...style,
     border: 'none',
-    width: width + 'px',
-    height: height + 'px',
-    top: 'calc(50vh + ' + (window.pageYOffset - height / 2) + 'px)',
-    left: 'calc(50vw + ' + (window.pageXOffset - width / 2) + 'px)',
+    width: width.toString() + 'px',
+    height: height.toString() + 'px',
+    top: 'calc(50vh + ' + (window.pageYOffset - height / 2).toString() + 'px)',
+    left: 'calc(50vw + ' + (window.pageXOffset - width / 2).toString() + 'px)',
   });
 
   body.appendChild(backdrop);
@@ -71,9 +71,9 @@ export function showModal(width: number, height: number, style: any = {}, src?: 
   }
 
   return new Promise((resolve) => resolve(iframe));
-}
+};
 
-export function closeModal() {
+export const closeModal = () => {
   const iframe = document.querySelector('iframe.metrimask-extension-modal');
 
   if (iframe) {
@@ -84,4 +84,4 @@ export function closeModal() {
 
     removeClass(document.documentElement, 'metrimask-extension-modal-wrap');
   }
-}
+};

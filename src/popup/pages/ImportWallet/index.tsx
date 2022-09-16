@@ -1,5 +1,17 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import React, { Component } from 'react';
-import { Typography, TextField, Button, withStyles, WithStyles, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Select, MenuItem } from '@material-ui/core';
+import { Typography,
+    TextField,
+    Button,
+    withStyles,
+    WithStyles,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
+    Select,
+    MenuItem } from '@material-ui/core';
 import { inject, observer } from 'mobx-react';
 
 import styles from './styles';

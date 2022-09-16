@@ -76,14 +76,14 @@ class CreateWallet extends Component<WithStyles & IProps, {}> {
     const { createWalletStore, saveMnemonicStore } = this.props.store;
     createWalletStore.walletName = event.target.value;
     saveMnemonicStore.walletName = event.target.value;
-  }
+  };
 
   private handleEnterPress = () => {
     const { createWalletStore } = this.props.store;
     if (!!createWalletStore.walletName) {
       createWalletStore.routeToSaveMnemonic();
     }
-  }
+  };
 }
 
 export default withStyles(styles)(CreateWallet);

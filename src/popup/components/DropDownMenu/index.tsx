@@ -56,7 +56,7 @@ class DropDownMenu extends Component<WithStyles & IProps, IState> {
       this.props.onSelect(i);
     }
     this.setState({ anchorEl: null });
-  }
+  };
 }
 
 export default withStyles(styles)(DropDownMenu);

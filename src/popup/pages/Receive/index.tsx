@@ -42,7 +42,7 @@ class Receive extends Component<WithStyles & IProps, {}> {
           </div>
           <Typography className={classes.currencyValue}>{`${metrixBalanceUSD} ${networkBalAnnotation}`}</Typography>
           <div className={classes.qrCodeContainer}>
-            <QRCode value={info!.addrStr} />
+            <QRCode value={info.addrStr} />
           </div>
         </div>
       </div>

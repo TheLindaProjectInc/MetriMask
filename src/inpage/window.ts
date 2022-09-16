@@ -1,6 +1,6 @@
 import { ISignExternalTxRequest, ISignMessageRequest } from '../types';
 
-function showWindow(width: number, height: number, url: string = '', name: string = 'metrimask-window'): Window {
+const showWindow = (width: number, height: number, url = '', name = 'metrimask-window'): Window => {
   const top = (screen.availHeight / 2) - (height / 2);
   const left = (screen.availWidth / 2) - (width / 2);
   const options = `
@@ -16,9 +16,9 @@ function showWindow(width: number, height: number, url: string = '', name: strin
     status=no
   `;
   return window.open(url, name, options)!;
-}
+};
 
-export function showSignTxWindow(signTxReq: ISignExternalTxRequest) {
+export const showSignTxWindow = (signTxReq: ISignExternalTxRequest) => {
   const { url, request } = signTxReq;
   if (!url) {
     throw Error('Cannot resolve Sign Transaction Dialog URL.');
@@ -35,9 +35,9 @@ export function showSignTxWindow(signTxReq: ISignExternalTxRequest) {
   const reqStr = JSON.stringify(request);
   const params = `req=${reqStr}&from=${account.address}`;
   showWindow(350, 650, `${url}?${params}`, 'Confirm Transaction');
-}
+};
 
-export function showSignMessageWindow(signMessageReq: ISignMessageRequest) {
+export const showSignMessageWindow = (signMessageReq: ISignMessageRequest) => {
   const { url, request } = signMessageReq;
   if (!url) {
     throw Error('Cannot resolve Sign Message Dialog URL.');
@@ -54,4 +54,4 @@ export function showSignMessageWindow(signMessageReq: ISignMessageRequest) {
   const reqStr = JSON.stringify(request);
   const params = `req=${reqStr}&account=${account.name}&address=${account.address}`;
   showWindow(350, 650, `${url}?${params}`, 'Sign Message');
-}
+};

@@ -53,74 +53,74 @@ export default class AccountDetailStore {
     } else if(this.activeTabIdx === 2) {
       this.onMrc721TokenTabSelected();
     }
-  }
+  };
 
   public deinit = () => {
     chrome.runtime.onMessage.removeListener(this.handleMessage);
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.STOP_TX_POLLING });
-  }
+  };
 
   public fetchMoreTxs = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MORE_TXS });
-  }
+  };
 
   public onTransactionClick = (txid: string) => {
-    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_URL }, (response: any) => {
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_URL }, (response: string) => {
       chrome.tabs.create({ url: `${response}/${txid}` });
     });
-  }
+  };
 
   public onTokenClick = (address: string) => {
-    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_TOKEN_URL }, (response: any) => {
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_TOKEN_URL }, (response: string) => {
       chrome.tabs.create({ url: `${response}/${address}` });
     });
-  }
+  };
 
   public onNFTClick = (address: string) => {
-    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_MRC721_URL }, (response: any) => {
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORK_EXPLORER_MRC721_URL }, (response: string) => {
       chrome.tabs.create({ url: `${response}/${address}` });
     });
-  }
+  };
 
   public removeToken = (contractAddress: string) => {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.REMOVE_TOKEN,
       contractAddress,
     });
-  }
+  };
 
   public removeMrc721Token = (contractAddress: string) => {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.REMOVE_MRC721_TOKEN,
       contractAddress,
     });
-  }
+  };
 
   public routeToAddToken = () => {
     this.app.routerStore.push('/add-token');
-  }
+  };
 
   public routeToAddMrc721Token = () => {
     this.app.routerStore.push('/add-mrc721-token');
-  }
+  };
 
   private onTransactionTabSelected = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.START_TX_POLLING });
-  }
+  };
 
   private onTokenTabSelected = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MRC_TOKEN_LIST }, (response: any) => {
       this.tokens = response;
     });
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.STOP_TX_POLLING });
-  }
+  };
 
   private onMrc721TokenTabSelected = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MRC721_TOKEN_LIST }, (response: any) => {
       this.mrc721tokens = response;
     });
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.STOP_TX_POLLING });
-  }
+  };
 
   @action
   private handleMessage = (request: any) => {
@@ -138,5 +138,5 @@ export default class AccountDetailStore {
       default:
         break;
     }
-  }
+  };
 }

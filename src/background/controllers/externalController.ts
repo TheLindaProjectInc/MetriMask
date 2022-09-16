@@ -10,7 +10,7 @@ const INIT_VALUES = {
 };
 
 export default class ExternalController extends IController {
-  private static GET_PRICE_INTERVAL_MS: number = 60000;
+  private static GET_PRICE_INTERVAL_MS = 60000;
 
   private getPriceInterval?: number = INIT_VALUES.getPriceInterval;
   private metrixPriceUSD: number = INIT_VALUES.metrixPriceUSD;
@@ -22,7 +22,7 @@ export default class ExternalController extends IController {
 
   public calculateMetrixToUSD = (balance: number): number => {
     return this.metrixPriceUSD ? Number((this.metrixPriceUSD * balance).toFixed(2)) : 0;
-  }
+  };
 
   /*
   * Starts polling for periodic info updates.
@@ -34,7 +34,7 @@ export default class ExternalController extends IController {
         this.getMetrixPrice();
       }, ExternalController.GET_PRICE_INTERVAL_MS);
     }
-  }
+  };
 
   /*
   * Stops polling for the periodic info updates.
@@ -44,7 +44,7 @@ export default class ExternalController extends IController {
       clearInterval(this.getPriceInterval);
       this.getPriceInterval = undefined;
     }
-  }
+  };
 
   /*
   * Gets the current Metrix market price.
@@ -70,5 +70,5 @@ export default class ExternalController extends IController {
     } catch (err) {
       console.log(err);
     }
-  }
+  };
 }

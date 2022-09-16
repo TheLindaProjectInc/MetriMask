@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component } from 'react';
 import { Typography, TextField, Button, withStyles, WithStyles } from '@material-ui/core';
 import { inject, observer } from 'mobx-react';
@@ -52,7 +53,7 @@ class AddToken extends Component<WithStyles & IProps, {}> {
         this.props.store.addTokenStore.addToken();
       }
     });
-  }
+  };
 }
 
 const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any) => (

@@ -23,8 +23,9 @@ class AccountInfo extends Component<WithStyles & IProps, {}> {
       sendButton: '/send',
       receiveButton: '/receive',
     }[id];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.props.store!.routerStore.push(location);
-  }
+  };
 
   public render() {
     const { classes, hasRightArrow } = this.props;

@@ -37,15 +37,15 @@ export default class CreateWalletStore {
   }
 
   @action
-  public reset = () => Object.assign(this, INIT_VALUES)
+  public reset = () => Object.assign(this, INIT_VALUES);
 
   @action
   public routeToSaveMnemonic = () => {
     this.app.routerStore.push('/save-mnemonic');
-  }
+  };
 
   @action
   public routeToImportWallet = () => {
     this.app.routerStore.push('/import-wallet');
-  }
+  };
 }

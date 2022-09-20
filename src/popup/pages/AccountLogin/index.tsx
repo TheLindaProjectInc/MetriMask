@@ -5,6 +5,7 @@ import { inject, observer } from 'mobx-react';
 import styles from './styles';
 import NavBar from '../../components/NavBar';
 import AppStore from '../../stores/AppStore';
+import Account from '../../../models/Account';
 
 interface IProps {
   classes: Record<string, string>;

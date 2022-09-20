@@ -57,7 +57,7 @@ class AccountDetail extends Component<WithStyles & IProps, {}> {
           </Paper>
           <Paper className={classes.tabsPaper} elevation={1}>
             <Tabs
-              fullWidth
+              variant="fullWidth"
               indicatorColor="primary"
               textColor="primary"
               value={activeTabIdx}

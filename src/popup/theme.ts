@@ -248,11 +248,6 @@ export default createMuiTheme({
       root: {
         padding: 0,
       },
-      label: {
-        fontFamily: fontMontserrat,
-        fontSize: fontSizeSm,
-        fontWeight: fontWeightBold,
-      },
     },
   },
 

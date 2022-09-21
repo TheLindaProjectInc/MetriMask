@@ -101,7 +101,7 @@ class ImportWallet extends Component<WithStyles & IProps, IState> {
     );
   }
 }
-
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any) => (
   <Typography className={classes.fieldHeading}>{name}</Typography>
 ));
@@ -143,4 +143,5 @@ const ErrorDialog: React.FC<any> = observer(({ store: { importStore }}: any) => 
   </Dialog>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(ImportWallet);

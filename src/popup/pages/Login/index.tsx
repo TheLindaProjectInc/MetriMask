@@ -92,4 +92,5 @@ const ErrorDialog: React.FC<any> = observer(({ store: { loginStore }}: any) => (
   </Dialog>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(Login);

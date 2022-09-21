@@ -223,4 +223,5 @@ const AmountInfo: FC<any> = ({ classes, amount, token }: any) => (
   </div>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(AccountDetail);

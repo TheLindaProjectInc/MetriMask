@@ -58,4 +58,5 @@ const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any)
   <Typography className={classes.fieldHeading}>{name}</Typography>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(Settings);

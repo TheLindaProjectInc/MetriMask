@@ -92,4 +92,5 @@ const SettingsButton: React.FC<IProps> =
   </Fragment>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(NavBar);

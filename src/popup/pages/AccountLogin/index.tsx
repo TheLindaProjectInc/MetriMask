@@ -79,4 +79,5 @@ const LoginSection = observer(({ classes, store: { accountLoginStore } }: any) =
   </div>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(AccountLogin);

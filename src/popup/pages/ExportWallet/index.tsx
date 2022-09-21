@@ -76,4 +76,5 @@ const ExportKey: FC<any> = observer(({ classes, store: { savePrivateKeyStore, ro
   </div>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(ExportWallet);

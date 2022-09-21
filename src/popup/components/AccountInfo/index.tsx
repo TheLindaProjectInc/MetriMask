@@ -79,4 +79,5 @@ class AccountInfo extends Component<WithStyles & IProps, {}> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(AccountInfo);

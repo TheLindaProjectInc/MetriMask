@@ -14,4 +14,5 @@ const Loading: React.FC<any> = ({ classes }: any) => (
   </div>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(Loading);

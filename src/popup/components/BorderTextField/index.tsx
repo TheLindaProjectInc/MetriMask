@@ -34,4 +34,5 @@ const BorderTextField: React.FC<any> = ({
   </div>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(BorderTextField);

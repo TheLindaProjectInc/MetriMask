@@ -103,4 +103,5 @@ const AddButton = observer(({ classes, store: { addMrc721TokenStore } }: any) =>
   </Button>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 export default withStyles(styles)(AddToken);

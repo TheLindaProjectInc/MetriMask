@@ -126,6 +126,7 @@ module.exports = {
             "error",
             "single"
         ],
+        "@typescript-eslint/restrict-template-expressions": "off",
         "@typescript-eslint/semi": [
             "error",
             "always"

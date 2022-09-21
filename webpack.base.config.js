@@ -1,5 +1,7 @@
 const path = require('path');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const autoprefixer = require('autoprefixer');
@@ -21,13 +23,14 @@ const styleLoaders = {
       options: {
         // Necessary for external CSS imports to work
         // https://github.com/facebookincubator/create-react-app/issues/2677
-        ident: 'postcss',
-        plugins: () => [
-          require('postcss-flexbugs-fixes'),
-          autoprefixer({
-            flexbox: 'no-2009',
-          }),
-        ],
+        postcssOptions: {
+          plugins: () => [
+             require('postcss-flexbugs-fixes'),
+            autoprefixer({
+              flexbox: 'no-2009',
+            }),
+          ],
+	},
       },
     },'sass-loader'
   ],
@@ -53,6 +56,17 @@ module.exports = {
     publicPath : 'chrome-extension://__MSG_@@extension_id__/',
   },
   resolve: {
+    //alias: {
+    //  "process": "process/browser",
+    //},
+    //fallback: {
+    //  process: require.resolve("process"),
+    //  buffer: require.resolve("buffer"),
+    //  url: require.resolve("url"),
+    //  stream: require.resolve("stream-browserify"),
+    //  crypto: require.resolve("crypto-browserify"),
+    //  assert: require.resolve("assert")
+    //},
     extensions: [
       '.ts',
       '.tsx',
@@ -64,63 +78,42 @@ module.exports = {
   module: {
     rules: [
       {
-        parser: {
-          amd: false,
-        }
-      },
-      {
         oneOf: [
           {
             test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/],
-            loader: require.resolve('url-loader'),
-            options: {
+	    type: 'asset/resource',
+            generator: {
               limit: 10000,
-              name: 'static/[name].[hash:8].[ext]',
+              filename: 'static/[name].[hash:8].[ext]',
             },
           },
           {
             test: /\.(ts|tsx)$/,
-            include: path.resolve(__dirname, './src'),
-            loader: require.resolve('ts-loader')
+            loader: 'ts-loader',
           },
           {
             exclude: /node_modules/,
             test: /\.s?css$/,
-            loader: ExtractTextPlugin.extract(
-              // use css-modules
-              Object.assign({}, styleLoaders, {
-                use: (() => {
-                  const copiedUse = styleLoaders.use.slice()
-                  // change css-loader options
-                  const cssLoader = copiedUse[0]
-                  copiedUse[0] = Object.assign({}, cssLoader, {
-                    options: Object.assign({}, cssLoader.options, {
-                      modules: true,
-                    })
-                  })
-                  return copiedUse
-                })()}
-              )
-            ),
-          },
-          {
-            loader: require.resolve('file-loader'),
-            exclude: [/\.js$/, /\.html$/, /\.json$/],
-            options: {
-              name: 'static/[name].[hash:8].[ext]',
-            },
+//	    use: ['style-loader', 'css-loader', 'postcss-loader'],
+            use: [MiniCssExtractPlugin.loader, 'css-loader'],
           },
         ],
       }
     ]
   },
   plugins: [
-    new ExtractTextPlugin({
+    new MiniCssExtractPlugin({
+      linkType: false,
       filename: '[name].css',
     }),
     new CopyWebpackPlugin([
       { from: 'static' },
     ]),
-    new ESLintPlugin(options)
+    new ESLintPlugin(options),
+    new NodePolyfillPlugin(),
+    //new webpack.ProvidePlugin({
+    //  process: 'process/browser',
+    //  Buffer: ['buffer', 'Buffer'],
+    //}),
   ],
 }

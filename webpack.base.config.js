@@ -88,6 +88,10 @@ module.exports = {
             use: [MiniCssExtractPlugin.loader,
               {
                 loader: require.resolve('css-loader'),
+                options: {
+                  importLoaders: 1,
+                  modules: true,
+                },
               },
               {
                 loader: require.resolve('postcss-loader'),
@@ -103,7 +107,8 @@ module.exports = {
                     ],
                   },
                 },
-              }
+              },
+              'sass-loader'
             ],
           },
         ],

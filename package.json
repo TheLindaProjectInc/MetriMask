@@ -44,7 +44,7 @@
     "sass-loader": "^7.0.3",
     "style-loader": "3.0.0",
     "ts-loader": "9.0.0",
-    "typescript": "4.2",
+    "typescript": "4.8",
     "uglifyjs-webpack-plugin": "^1.2.7",
     "url-loader": "^4.1.1",
     "web-ext-types": "^3.2.1",

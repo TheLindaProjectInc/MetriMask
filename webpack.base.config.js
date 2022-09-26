@@ -1,5 +1,5 @@
 const path = require('path');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const autoprefixer = require('autoprefixer');
@@ -21,7 +21,7 @@ const styleLoaders = {
       options: {
         // Necessary for external CSS imports to work
         // https://github.com/facebookincubator/create-react-app/issues/2677
-        postsssOptions: {
+        postcssOptions: {
           plugins: () => [
             require('postcss-flexbugs-fixes'),
             autoprefixer({
@@ -40,6 +40,10 @@ const options = {
 }
 
 module.exports = {
+  node: {
+    Buffer: false,
+    process: false
+  },
   entry: {
     background: './src/background/index.ts',
     contentscript: './src/contentscript/index.ts',
@@ -65,58 +69,50 @@ module.exports = {
   module: {
     rules: [
       {
-        parser: {
-          amd: false,
-        }
-      },
-      {
         oneOf: [
           {
             test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/],
-            loader: require.resolve('url-loader'),
-            options: {
+            type: 'asset/resource',
+            generator: {
               limit: 10000,
-              name: 'static/[name].[hash:8].[ext]',
+              filename: 'static/[name].[hash:8].[ext]',
             },
           },
           {
             test: /\.(ts|tsx)$/,
-            include: path.resolve(__dirname, './src'),
-            loader: require.resolve('ts-loader')
+            use: 'ts-loader',
           },
           {
             exclude: /node_modules/,
             test: /\.s?css$/,
-            loader: ExtractTextPlugin.extract(
-              // use css-modules
-              Object.assign({}, styleLoaders, {
-                use: (() => {
-                  const copiedUse = styleLoaders.use.slice()
-                  // change css-loader options
-                  const cssLoader = copiedUse[0]
-                  copiedUse[0] = Object.assign({}, cssLoader, {
-                    options: Object.assign({}, cssLoader.options, {
-                      modules: true,
-                    })
-                  })
-                  return copiedUse
-                })()}
-              )
-            ),
-          },
-          {
-            loader: require.resolve('file-loader'),
-            exclude: [/\.js$/, /\.html$/, /\.json$/],
-            options: {
-              name: 'static/[name].[hash:8].[ext]',
-            },
+            use: [MiniCssExtractPlugin.loader,
+              {
+                loader: require.resolve('css-loader'),
+              },
+              {
+                loader: require.resolve('postcss-loader'),
+                options: {
+                  // Necessary for external CSS imports to work
+                  // https://github.com/facebookincubator/create-react-app/issues/2677
+                  postcssOptions: {
+                    plugins: () => [
+                      require('postcss-flexbugs-fixes'),
+                      autoprefixer({
+                        flexbox: 'no-2009',
+                      }),
+                    ],
+                  },
+                },
+              }
+            ],
           },
         ],
       }
     ]
   },
   plugins: [
-    new ExtractTextPlugin({
+    new MiniCssExtractPlugin({
+      linkType: false,
       filename: '[name].css',
     }),
     new CopyWebpackPlugin([

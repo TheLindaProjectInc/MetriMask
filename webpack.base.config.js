@@ -4,36 +4,6 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const autoprefixer = require('autoprefixer');
 
-const styleLoaders = {
-  fallback: {
-    loader: require.resolve('style-loader'),
-  },
-  use: [
-    {
-      loader: require.resolve('css-loader'),
-      options: {
-        importLoaders: 1,
-        minimize: true,
-      },
-    },
-    {
-      loader: require.resolve('postcss-loader'),
-      options: {
-        // Necessary for external CSS imports to work
-        // https://github.com/facebookincubator/create-react-app/issues/2677
-        postcssOptions: {
-          plugins: () => [
-            require('postcss-flexbugs-fixes'),
-            autoprefixer({
-              flexbox: 'no-2009',
-            }),
-          ],
-        },
-      },
-    },'sass-loader'
-  ],
-}
-
 const options = {
   extensions: [`.ts`, `.tsx`],
   files: [ path.resolve(__dirname, './src') ]

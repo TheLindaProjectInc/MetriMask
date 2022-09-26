@@ -10,10 +10,6 @@ const options = {
 }
 
 module.exports = {
-  node: {
-    Buffer: false,
-    process: false
-  },
   entry: {
     background: './src/background/index.ts',
     contentscript: './src/contentscript/index.ts',

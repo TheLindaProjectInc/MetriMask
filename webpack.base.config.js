@@ -1,4 +1,5 @@
 const path = require('path');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
@@ -89,6 +90,7 @@ module.exports = {
     new CopyWebpackPlugin([
       { from: 'static' },
     ]),
-    new ESLintPlugin(options)
+    new ESLintPlugin(options),
+    new NodePolyfillPlugin(),
   ],
 }

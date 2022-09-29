@@ -410,7 +410,7 @@ export default class AccountController extends IController {
   */
   private startPolling = async () => {
     if (!this.getInfoInterval) {
-      this.getInfoInterval = window.setInterval(() => {
+      this.getInfoInterval = self.setInterval(() => {
         this.getWalletInfo();
       }, AccountController.GET_INFO_INTERVAL_MS);
     }
@@ -433,8 +433,8 @@ export default class AccountController extends IController {
     */
     try {
       const rates = {
-        [TRANSACTION_SPEED.FAST]: 225000000,
-        [TRANSACTION_SPEED.NORMAL]: 225000000,
+        [TRANSACTION_SPEED.FAST]: 1000000000,
+        [TRANSACTION_SPEED.NORMAL]: 500000000,
         [TRANSACTION_SPEED.SLOW]: 225000000,
       };
       const feeRate = rates[transactionSpeed]; // satoshi/byte; 1000000 satoshi/byte == 10 MRX/KB

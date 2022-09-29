@@ -69,7 +69,7 @@ export default class SessionController extends IController {
     // Check if session logout is enabled
     if (this.sessionLogoutInterval > 0) {
       // Logout from bgp after interval
-      this.sessionTimeout = window.setTimeout(() => {
+      this.sessionTimeout = self.setTimeout(() => {
         this.clearSession();
         this.main.crypto.resetPasswordHash();
         console.log('Session cleared');

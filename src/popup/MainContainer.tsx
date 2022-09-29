@@ -2,7 +2,14 @@ import React, { Component } from 'react';
 import { inject, observer } from 'mobx-react';
 import { unstable_HistoryRouter as HistoryRouter, Route, Routes } from 'react-router-dom';
 import { SynchronizedHistory } from 'mobx-react-router';
-import { Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@material-ui/core';
+import { 
+  Button,
+   Dialog,
+   DialogTitle,
+   DialogContent,
+   DialogContentText,
+   DialogActions
+  } from '@material-ui/core';
 
 import Loading from './components/Loading';
 import Login from './pages/Login';

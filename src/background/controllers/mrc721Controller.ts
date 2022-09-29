@@ -67,7 +67,7 @@ export default class Mrc721Controller extends IController {
   public startPolling = async () => {
     this.getBalances();
     if (!this.getBalancesInterval) {
-      this.getBalancesInterval = window.setInterval(() => {
+      this.getBalancesInterval = self.setInterval(() => {
         this.getBalances();
       }, Mrc721Controller.GET_BALANCES_INTERVAL_MS);
     }

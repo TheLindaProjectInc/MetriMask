@@ -44,13 +44,16 @@ export default class OnInstallController extends IController {
   private refreshTab(tab: chrome.tabs.Tab) {
      // Tells the content script to post a msg to the inpage window letting it know that MetriMask
      // was installed or updated.
-     chrome.tabs.executeScript(tab.id!, {code:
-      `window.postMessage(
-        {
-          message: { type: 'METRIMASK_INSTALLED_OR_UPDATED' }
-        },
-        '*'
-      )`,
+     chrome.scripting.executeScript({
+      target: {tabId: tab.id!, allFrames: true},
+      func: () => {
+        window.postMessage(
+          {
+            message: { type: 'METRIMASK_INSTALLED_OR_UPDATED' }
+          },
+          '*'
+        );
+      },
     });
   }
 }

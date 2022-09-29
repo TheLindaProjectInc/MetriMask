@@ -1,4 +1,4 @@
-import axios from 'axios';
+const fetch = require('node-fetch');
 
 import MetriMaskController from '.';
 import IController from './iController';
@@ -30,7 +30,7 @@ export default class ExternalController extends IController {
   public startPolling = async () => {
     await this.getMetrixPrice();
     if (!this.getPriceInterval) {
-      this.getPriceInterval = window.setInterval(() => {
+      this.getPriceInterval = self.setInterval(() => {
         this.getMetrixPrice();
       }, ExternalController.GET_PRICE_INTERVAL_MS);
     }
@@ -51,9 +51,9 @@ export default class ExternalController extends IController {
   */
   private getMetrixPrice = async () => {
     try {
-      // const jsonObj = await axios.get('https://api.coinmarketcap.com/v2/ticker/1684/');
-      const jsonObj = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=linda&vs_currencies=USD');
-      this.metrixPriceUSD = jsonObj.data.linda.usd;
+      const resjsonObj = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=linda&vs_currencies=USD');
+      const jsonObj = await resjsonObj.json();
+      this.metrixPriceUSD = jsonObj.linda.usd;
 
       if (this.main.account.loggedInAccount
         && this.main.account.loggedInAccount.wallet

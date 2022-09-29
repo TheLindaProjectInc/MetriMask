@@ -1,5 +1,6 @@
 .eslintrc.js
 scryptworker.js
+service_worker.js
 global.css
 en_US.json
 logo.svg

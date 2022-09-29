@@ -410,7 +410,7 @@ export default class AccountController extends IController {
   */
   private startPolling = async () => {
     if (!this.getInfoInterval) {
-      this.getInfoInterval = window.setInterval(() => {
+      this.getInfoInterval = self.setInterval(() => {
         this.getWalletInfo();
       }, AccountController.GET_INFO_INTERVAL_MS);
     }

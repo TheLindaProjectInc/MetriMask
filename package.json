@@ -70,7 +70,7 @@
     "deep-equal": "^2.0.5",
     "fetch-absolute": "^1.0.0",
     "follow-redirects": "1.14.8",
-    "metrixjs-wallet": "^0.2.20",
+    "metrixjs-wallet": "^0.3.0",
     "mobx": "^5.15.7",
     "mobx-react": "^5.2.3",
     "mobx-react-router": "^4.1.0",

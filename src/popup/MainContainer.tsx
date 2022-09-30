@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { inject, observer } from 'mobx-react';
 import { unstable_HistoryRouter as HistoryRouter, Route, Routes } from 'react-router-dom';
 import { SynchronizedHistory } from 'mobx-react-router';
-import { 
+import {
   Button,
    Dialog,
    DialogTitle,

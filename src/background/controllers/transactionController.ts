@@ -73,7 +73,7 @@ export default class TransactionController extends IController {
   private startPolling = async () => {
     await this.fetchFirst();
     if (!this.getTransactionsInterval) {
-      this.getTransactionsInterval = window.setInterval(() => {
+      this.getTransactionsInterval = self.setInterval(() => {
         this.refreshTransactions();
       }, TransactionController.GET_TX_INTERVAL_MS);
     }

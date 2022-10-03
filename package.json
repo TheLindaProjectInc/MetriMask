@@ -66,7 +66,6 @@
     "bip39": "^3.0.4",
     "bitcoinjs-lib": "4.0.5",
     "bitcoinjs-message": "^2.2.0",
-    "chrome-call": "^3.0.0",
     "classnames": "^2.3.2",
     "deep-equal": "^2.0.5",
     "fetch-absolute": "^1.0.0",

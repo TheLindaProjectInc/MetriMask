@@ -39,7 +39,7 @@
     "node-polyfill-webpack-plugin": "^2.0.1",
     "node-sass": "^7.0.1",
     "postcss-flexbugs-fixes": "^5.0.1",
-    "postcss-loader": "5.0.0",
+    "postcss-loader": "7.0.1",
     "postcss-modules": "4.3.1",
     "react-router-dom": "6",
     "sass-loader": "^13.0.2",

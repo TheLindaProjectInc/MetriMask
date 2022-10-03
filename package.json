@@ -57,7 +57,7 @@
     "@material-ui/icons": "4.0.1",
     "@types/deep-equal": "^1.0.1",
     "@types/history": "^5.0.0",
-    "@types/lodash": "^4.14.185",
+    "@types/lodash": "^4.14.186",
     "@types/qrcode.react": "^1.0.2",
     "@types/scryptsy": "^2.0.0",
     "@types/secp256k1": "^4.0.3",

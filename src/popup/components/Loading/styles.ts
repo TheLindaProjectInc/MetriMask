@@ -1,6 +1,7 @@
-import { StyleRulesCallback, Theme } from '@material-ui/core';
+import { Theme, makeStyles, createStyles } from '@material-ui/core';
 
-const styles: StyleRulesCallback = (theme: Theme) => ({
+const styles = makeStyles((theme: Theme) =>
+  createStyles({
   root: {
     width: '100%',
     height: '100%',
@@ -44,6 +45,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   '@keyframes anim9': {
     to: { backgroundPosition: '160px' },
   },
-});
+}));
 
 export default styles;

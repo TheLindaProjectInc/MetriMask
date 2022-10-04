@@ -1,6 +1,7 @@
-import { StyleRulesCallback, Theme } from '@material-ui/core';
+import { Theme, makeStyles, createStyles } from '@material-ui/core';
 
-const styles: StyleRulesCallback = (theme: Theme) => ({
+const styles = makeStyles((theme: Theme) =>
+  createStyles({
   root: {
     height: '100%',
     display: 'flex',
@@ -85,6 +86,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     height: theme.button.lg.height,
     borderRadius: theme.button.lg.radius,
   },
-});
+}));
 
 export default styles;

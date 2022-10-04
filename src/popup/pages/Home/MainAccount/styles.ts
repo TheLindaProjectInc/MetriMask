@@ -1,6 +1,7 @@
-import { StyleRulesCallback, Theme } from '@material-ui/core';
+import { Theme, makeStyles, createStyles } from '@material-ui/core';
 
-const styles: StyleRulesCallback = (theme: Theme) => ({
+const styles = makeStyles((theme: Theme) =>
+  createStyles({
   card: {
     cursor: 'pointer',
     borderRadius: theme.border.radius,
@@ -8,6 +9,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   cardContent: {
     background: theme.color.gradientPurple,
   },
-});
+}));
 
 export default styles;

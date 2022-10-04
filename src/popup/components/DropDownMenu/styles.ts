@@ -1,6 +1,7 @@
-import { StyleRulesCallback, Theme } from '@material-ui/core';
+import { Theme, makeStyles, createStyles } from '@material-ui/core';
 
-const styles: StyleRulesCallback = (theme: Theme) => ({
+const styles = makeStyles((theme: Theme) =>
+  createStyles({
   menuButton: {
     height: 24,
     minWidth: 0,
@@ -9,6 +10,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     color: theme.palette.text.primary,
     textTransform: 'none',
   },
-});
+}));
 
 export default styles;

@@ -1,6 +1,7 @@
-import { StyleRulesCallback, Theme } from '@material-ui/core';
+import { Theme, makeStyles, createStyles } from '@material-ui/core';
 
-const styles: StyleRulesCallback = (theme: Theme) => ({
+const styles = makeStyles((theme: Theme) =>
+  createStyles({
   root: {
     margin: theme.padding.md,
     flexDirection: 'row',
@@ -53,6 +54,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
       color: theme.palette.secondary.main,
     },
   },
-});
+}));
 
 export default styles;

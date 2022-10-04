@@ -1,6 +1,7 @@
-import { StyleRulesCallback, Theme } from '@material-ui/core';
+import { Theme, makeStyles, createStyles } from '@material-ui/core';
 
-const styles: StyleRulesCallback = (theme: Theme) => ({
+const styles = makeStyles((theme: Theme) =>
+  createStyles({
   logoContainer: {
     flex: 1,
     display: 'flex',
@@ -22,6 +23,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     fontSize: theme.font.sm,
     color: theme.palette.text.secondary,
   },
-});
+}));
 
 export default styles;

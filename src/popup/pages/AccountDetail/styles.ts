@@ -23,15 +23,37 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   },
   list: {
     flex: 1,
-    padding: `0 ${theme.padding.md}`,
     overflowX: 'hidden',
     overflowY: 'auto',
   },
   listItem: {
     width: '100%',
-    padding: `${theme.padding.md} 0`,
     cursor: 'pointer',
     display: 'inline-flex',
+    paddingLeft: '8px',
+  },
+  unconfirmedListItem: {
+    width: '100%',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    background: 'linear-gradient(90deg, #82307F, #ffffff)',
+    backgroundSize: '500%',
+    animation: '$gradient 4s ease infinite',
+    paddingLeft: '8px',
+  },
+  '@keyframes gradient': {
+    '0%': {
+      'background-position': '0% 50%',
+    },
+    '50%': {
+      'background-position': '100% 50%',
+    },
+    '100%': {
+      'background-position': '0% 50%',
+    },
+  },
+  listItemIcon: {
+    paddingRight: '5px',
   },
   txInfoContainer: {
     flex: 1,

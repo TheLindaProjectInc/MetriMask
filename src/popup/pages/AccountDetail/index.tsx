@@ -2,6 +2,8 @@
 import React, { Component, FC } from 'react';
 import { Paper, Tabs, Tab, List, ListItem, Typography, Button, withStyles, WithStyles } from '@material-ui/core';
 import { KeyboardArrowRight } from '@material-ui/icons';
+import RemoveIcon from '@material-ui/icons/Remove';
+import AddIcon from '@material-ui/icons/Add';
 import { inject, observer } from 'mobx-react';
 import cx from 'classnames';
 import { isUndefined } from 'lodash';
@@ -82,8 +84,13 @@ class AccountDetail extends Component<WithStyles & IProps, {}> {
 
 const TransactionList: FC<any> = observer(({ classes, store: { accountDetailStore } }: any) => (
   <div>
-    {accountDetailStore.transactions.map(({ id, pending, confirmations, timestamp, amount }: Transaction) => (
-      <ListItem divider key={id} className={classes.listItem} onClick={() => accountDetailStore.onTransactionClick(id)}>
+    {accountDetailStore.transactions.map(({
+      id, pending, confirmations, timestamp, amount, direction }: Transaction) => (
+      <ListItem divider key={id} className={
+        confirmations === 0 ? classes.unconfirmedListItem : classes.listItem
+        } onClick={() => accountDetailStore.onTransactionClick(id)}>
+        {direction === 'in' ? <AddIcon className={classes.listItemIcon} style={{color:'green'}} /> :
+        <RemoveIcon className={classes.listItemIcon} style={{color: 'red'}} />}
         <div className={classes.txInfoContainer}>
           {pending ? (
             <Typography className={cx(classes.txState, 'pending')}>pending</Typography>

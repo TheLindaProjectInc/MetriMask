@@ -8,6 +8,7 @@ export default class Transaction {
   @computed public get pending() {
     return !this.confirmations;
   }
+  @observable public direction: string;
 
   constructor(attributes = {}) {
     Object.assign(this, attributes);

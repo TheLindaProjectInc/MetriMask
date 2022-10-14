@@ -112,12 +112,19 @@ export default class TransactionController extends IController {
       });
       const [mine, other] = partition(outs, ({ addresses }) => includes(addresses, wallet.address));
       const amount = sumBy(sender ? other : mine, ({ value }) => parseFloat(value));
+      let direction: string;
+      if (sender && mine[0].addresses[0] !== wallet.address) {
+        direction = 'out';
+      } else {
+        direction = 'in';
+      }
 
       return new Transaction({
         id: txid,
         timestamp: moment(new Date(time * 1000)).format('MM-DD-YYYY, HH:mm'),
         confirmations,
         amount: amount > 0 ? round(amount / 1E8, 8) : round(amount, 8),
+        direction,
       });
     });
   };

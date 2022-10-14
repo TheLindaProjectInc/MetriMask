@@ -6,7 +6,7 @@ const updateFields = () => {
   const to = args[0];
   const amount = args[2] || 0;
   const gasLimit = args[3] || 250000;
-  const gasPrice = args[4] ? gasConvert(Number(args[4])) : 5000;
+  const gasPrice = args[4] ? gasConvert(Number(args[4])) : 10000;
   const maxTxFee = Math.round(gasLimit * gasPrice * 1000) / 1e11;
 
   document.getElementById('from-field').innerText = fromAddress;
@@ -80,7 +80,7 @@ window.onload = () => {
   document
     .getElementById('gas-price-field')
     .addEventListener('change', (res) => {
-      request.args[4] = res.target.value ? parseInt(res.target.value) : 5000;
+      request.args[4] = res.target.value ? parseInt(res.target.value) : 10000;
       updateFields();
     });
   document

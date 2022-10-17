@@ -48,8 +48,10 @@ export default class Wallet implements ISigner {
         this.info = newInfo;
         return true;
       }
-    } catch (e: any) {
-      throw(Error(e as string));
+    } catch (e: unknown) {
+      if (e instanceof Error){
+          throw(e);
+      }
     }
 
     return false;

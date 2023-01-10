@@ -98,7 +98,9 @@ const TransactionList: FC<any> = observer(({ classes, store: { accountDetailStor
             <Typography className={classes.txState}>{`${confirmations} confirmations`}</Typography>
           )}
           <Typography className={classes.txId}>{`txid: ${shortenTxid(id)}`}</Typography>
-          <Typography className={classes.txTime}>{timestamp || '01-01-2018 00:00'}</Typography>
+          {timestamp !== 'Invalid date' ?
+          <Typography className={classes.txTime}>{timestamp || '01-01-2018 00:00'}</Typography> :
+          <Typography className={classes.txTime}>TX Pending</Typography>}
         </div>
         <AmountInfo classes={classes} amount={amount} token="MRX" />
         <div>

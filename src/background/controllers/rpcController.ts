@@ -156,7 +156,7 @@ export default class RPCController extends IController {
       let sigOptions;
 
       if (args.length === 3 && args[2] === true) {
-        usePrefix = '\x15Metrix Signed Message:\n';
+        usePrefix = '\x17Metrix Signed Message:\n';
       }
       if (args.length === 4 && JSON.stringify(args[3]).indexOf('segwitType' || 'extraEntropy') !== -1) {
         sigOptions = args[3];
@@ -207,7 +207,7 @@ export default class RPCController extends IController {
     let prefix;
     let checkSegwitAlways;
     if (args.length === 4 && args[3] === true) {
-      prefix = '\x15Metrix Signed Message:\n';
+      prefix = '\x17Metrix Signed Message:\n';
     }
 
     if (args.length === 5 && typeof args[4] === 'boolean') {

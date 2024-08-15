@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@material-ui/icons": "4.0.1",
+    "@types/bitcoinjs-lib": "4.0.1",
     "@types/deep-equal": "^1.0.1",
     "@types/history": "^5.0.0",
     "@types/lodash": "^4.14.185",
@@ -69,7 +70,7 @@
     "classnames": "^2.2.6",
     "deep-equal": "^2.0.5",
     "follow-redirects": "1.14.8",
-    "metrixjs-wallet": "^0.3.1",
+    "metrixjs-wallet": "https://github.com/TheLindaProjectInc/metrixjs-wallet.git#bitcoinlib-js-update",
     "mobx": "^5.15.7",
     "mobx-react": "^5.2.3",
     "mobx-react-router": "^4.1.0",

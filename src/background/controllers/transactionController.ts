@@ -113,7 +113,9 @@ export default class TransactionController extends IController {
       const [mine, other] = partition(outs, ({ addresses }) => includes(addresses, wallet.address));
       const amount = sumBy(sender ? other : mine, ({ value }) => parseFloat(value));
       let direction: string;
-      if (sender && mine[0].addresses[0] !== wallet.address) {
+      if (sender && !mine[0]) {
+        direction = 'out';
+      } else if (sender && mine[0].addresses[0] !== wallet.address) {
         direction = 'out';
       } else {
         direction = 'in';

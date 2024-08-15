@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/require-await */
-const bitcoin = require('bitcoinjs-lib');
+import * as bitcoin from 'bitcoinjs-lib';
 import { WalletRPCProvider, Insight, Wallet } from 'metrixjs-wallet';
 import metrixMessage from 'bitcoinjs-message';
 import assert from 'assert';

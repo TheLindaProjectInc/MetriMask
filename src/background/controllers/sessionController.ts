@@ -18,7 +18,9 @@ export default class SessionController extends IController {
 
     // Check for session timeout in local storage, override the wallet default if found
     chrome.storage.local.get([STORAGE.WALLET_TIMEOUT],({walletTimeout}) => {
-        this.sessionLogoutInterval = walletTimeout;
+        if(walletTimeout !== undefined) {
+          this.sessionLogoutInterval = walletTimeout;
+        }
         console.log('Session Logout Interval set to: ' + this.sessionLogoutInterval.toString());
     });
 

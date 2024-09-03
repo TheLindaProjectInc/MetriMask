@@ -1,5 +1,4 @@
 import MetriMaskController from '.';
-import { isEmpty } from 'lodash';
 import IController from './iController';
 import {
   MESSAGE_TYPE,

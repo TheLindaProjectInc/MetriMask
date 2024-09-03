@@ -1,9 +1,11 @@
 import MetriMaskController from '.';
+import { isEmpty } from 'lodash';
 import IController from './iController';
 import {
   MESSAGE_TYPE,
   RESPONSE_TYPE,
-  METRIMASK_ACCOUNT_CHANGE
+  METRIMASK_ACCOUNT_CHANGE,
+  STORAGE
 } from '../../constants';
 
 export default class SessionController extends IController {
@@ -14,17 +16,22 @@ export default class SessionController extends IController {
   constructor(main: MetriMaskController) {
     super('session', main);
 
-    chrome.runtime.onMessage.addListener(this.handleMessage);
-
-    // When popup is opened
-    chrome.runtime.onConnect.addListener((port) => {
-      this.onPopupOpened();
-
-      // Add listener for when popup is closed
-      port.onDisconnect.addListener(() => this.onPopupClosed());
+    // Check for session timeout in local storage, override the wallet default if found
+    chrome.storage.local.get([STORAGE.WALLET_TIMEOUT],({walletTimeout}) => {
+        this.sessionLogoutInterval = walletTimeout;
+        console.log('Session Logout Interval set to: ' + this.sessionLogoutInterval.toString());
     });
 
-    this.initFinished();
+      chrome.runtime.onMessage.addListener(this.handleMessage);
+      // When popup is opened
+      chrome.runtime.onConnect.addListener((port) => {
+        this.onPopupOpened();
+
+        // Add listener for when popup is closed
+        port.onDisconnect.addListener(() => this.onPopupClosed());
+      });
+
+      this.initFinished();
   }
 
   /*
@@ -98,7 +105,12 @@ export default class SessionController extends IController {
           sendResponse(this.sessionLogoutInterval);
           break;
         case MESSAGE_TYPE.SAVE_SESSION_LOGOUT_INTERVAL:
-          this.sessionLogoutInterval = request.value;
+          chrome.storage.local.set({ [STORAGE.WALLET_TIMEOUT]: request.value },
+            () => {
+              this.sessionLogoutInterval = request.value;
+              console.log('walletTimeout set');
+            }
+          );
           break;
         default:
           break;

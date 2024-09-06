@@ -27,7 +27,7 @@ export default class SettingsStore {
       new SessionLogoutInterval(600000, INTERVAL_NAMES.TEN_MIN),
       new SessionLogoutInterval(1800000, INTERVAL_NAMES.THIRTY_MIN),
       new SessionLogoutInterval(7200000, INTERVAL_NAMES.TWO_HOUR),
-      new SessionLogoutInterval(43200000, INTERVAL_NAMES.TWELVE_HOUR)
+      new SessionLogoutInterval(14400000, INTERVAL_NAMES.FOUR_HOUR)
     ];
   }
 

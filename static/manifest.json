@@ -1,8 +1,8 @@
 {
   "name": "MetriMask",
   "description": "Metrix light wallet and transaction signing client.",
-  "version": "1.0.8",
-  "manifest_version": 2,
+  "version": "1.0.9",
+  "manifest_version": 3,
   "icons": {
     "16": "images/logo-main-16.png",
     "32": "images/logo-main-32.png",
@@ -10,27 +10,12 @@
     "64": "images/logo-main-64.png",
     "128": "images/logo-main-128.png"
   },
-  "browser_action": {
-    "default_title": "MetriMask",
-    "default_icon": "images/logo-main-128.png",
-    "default_popup": "popup.html"
-  },
   "permissions": [
-    "storage", 
-    "*://*/*"
+    "storage",
+	  "scripting"
   ],
   "background": {
-    "scripts": [
-      "hot-reload.js",
-      "commons.all.js",
-      "commons.exclude-contentscript.js",
-      "commons.exclude-popup.js",
-      "commons.exclude-inpage.js",
-      "commons.background-contentscript.js",
-      "commons.background-popup.js",
-      "commons.background-inpage.js",
-      "background.js"
-    ]
+    "service_worker": "service_worker.js"
   },
   "content_scripts": [
     {
@@ -52,28 +37,47 @@
       "run_at": "document_start"
     }
   ],
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "web_accessible_resources": [
-    "commons.all.js",
-    "commons.exclude-background.js",
-    "commons.exclude-contentscript.js",
-    "commons.exclude-popup.js",
-    "commons.background-inpage.js",
-    "commons.contentscript-inpage.js",
-    "commons.popup-inpage.js",
-    "inpage.js",
-    "sign-tx.html",
-    "sign-message.html",
-    "images/logo.png",
-    "css/modal.css"
+    {
+      "resources": [
+        "commons.all.js",
+        "commons.exclude-background.js",
+        "commons.exclude-contentscript.js",
+        "commons.exclude-popup.js",
+        "commons.background-inpage.js",
+        "commons.contentscript-inpage.js",
+        "commons.popup-inpage.js",
+        "inpage.js",
+        "sign-tx.html",
+        "sign-message.html",
+        "images/logo.png",
+        "css/modal.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
   ],
   "externally_connectable": {
-    "ids": ["*"]
+    "ids": [
+      "*"
+    ]
   },
   "author": [
     {
       "name": "Metrix Coin Ltd",
       "website": "https://metrixcoin.com"
     }
+  ],
+  "action": {
+    "default_title": "MetriMask",
+    "default_icon": "images/logo-main-128.png",
+    "default_popup": "popup.html"
+  },
+  "host_permissions": [
+    "*://*/*"
   ]
 }

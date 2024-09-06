@@ -67,7 +67,7 @@ export default class TokenController extends IController {
   public startPolling = async () => {
     this.getBalances();
     if (!this.getBalancesInterval) {
-      this.getBalancesInterval = window.setInterval(() => {
+      this.getBalancesInterval = self.setInterval(() => {
         this.getBalances();
       }, TokenController.GET_BALANCES_INTERVAL_MS);
     }

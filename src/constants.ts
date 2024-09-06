@@ -119,6 +119,7 @@ export enum STORAGE {
   NETWORK_INDEX = 'networkIndex',
   ACCOUNT_TOKEN_LIST = 'accountTokenList',
   ACCOUNT_MRC721_TOKEN_LIST = 'accountMrc721TokenList',
+  WALLET_TIMEOUT = 'walletTimeout',
 }
 
 export enum IMPORT_TYPE {
@@ -144,7 +145,7 @@ export enum INTERVAL_NAMES {
   TEN_MIN = '10 min',
   THIRTY_MIN = '30 min',
   TWO_HOUR = '2 hr',
-  TWELVE_HOUR = '12 hr'
+  FOUR_HOUR = '4 hr'
 }
 
 export enum TRANSACTION_SPEED {

@@ -4509,9 +4509,9 @@ merkle-lib@^2.0.10:
   resolved "https://registry.yarnpkg.com/merkle-lib/-/merkle-lib-2.0.10.tgz#82b8dbae75e27a7785388b73f9d7725d0f6f3326"
   integrity sha1-grjbrnXieneFOItz+ddyXQ9vMyY=
 
-"metrixjs-wallet@https://github.com/TheLindaProjectInc/metrixjs-wallet.git#bitcoinlib-js-update":
+"metrixjs-wallet@https://github.com/TheLindaProjectInc/metrixjs-wallet.git#migrate-to-psbt":
   version "0.3.1"
-  resolved "https://github.com/TheLindaProjectInc/metrixjs-wallet.git#95d64a83c3d0982b84af82110b68070a7378ff48"
+  resolved "https://github.com/TheLindaProjectInc/metrixjs-wallet.git#52f1b5324ff51745cce927ae50f513c4152e31b3"
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@types/bip38" "^2.0.1"

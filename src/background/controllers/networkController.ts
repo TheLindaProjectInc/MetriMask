@@ -60,7 +60,7 @@ export default class NetworkController extends IController {
       }, () => console.log('networkIndex changed', networkIndex));
 
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.CHANGE_NETWORK_SUCCESS, networkIndex });
-      this.main.account.logoutAccount();
+      this.main.account.logoutNetwork();
     }
   };
 

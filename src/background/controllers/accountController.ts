@@ -250,13 +250,27 @@ export default class AccountController extends IController {
     }
   };
 
+    /*
+  * Logs out of the current account and routes back to the account login.
+  */
+    public logoutNetwork = () => {
+      this.main.session.clearAllIntervals();
+      this.main.session.clearSession();
+      this.routeToAccountPage();
+    };
+
   /*
   * Logs out of the current account and routes back to the account login.
   */
   public logoutAccount = () => {
     this.main.session.clearAllIntervals();
+    this.main.crypto.resetPasswordHash();
     this.main.session.clearSession();
-    this.routeToAccountPage();
+    this.routeToLoginPage();
+  };
+
+  public routeToLoginPage = () => {
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.ROUTE_LOGIN });
   };
 
   /*

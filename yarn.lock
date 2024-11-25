@@ -330,6 +330,11 @@
   version "2.2.4"
   resolved "https://registry.yarnpkg.com/@types/classnames/-/classnames-2.2.4.tgz#d3ee9ebf714aa34006707b8f4a58fd46b642305a"
 
+"@types/cookie@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@types/cookie/-/cookie-0.6.0.tgz#eac397f28bf1d6ae0ae081363eca2f425bedf0d5"
+  integrity sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==
+
 "@types/deep-equal@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@types/deep-equal/-/deep-equal-1.0.1.tgz#71cfabb247c22bcc16d536111f50c0ed12476b03"
@@ -1883,6 +1888,11 @@ convert-css-length@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/convert-css-length/-/convert-css-length-2.0.1.tgz#90a76bde5bfd24d72881a5b45d02249b2c1d257c"
   integrity sha512-iGpbcvhLPRKUbBc0Quxx7w/bV14AC3ItuBEGMahA5WTYqB8lq9jH0kTXFheCBASsYnqeMFZhiTruNxr1N59Axg==
+
+cookie@^1.0.1:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/cookie/-/cookie-1.0.2.tgz#27360701532116bd3f1f9416929d176afe1e4610"
+  integrity sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==
 
 copy-concurrently@^1.0.0:
   version "1.0.5"
@@ -3440,7 +3450,7 @@ hash.js@^1.1.7:
     inherits "^2.0.3"
     minimalistic-assert "^1.0.1"
 
-history@*, history@^5.2.0:
+history@*:
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/history/-/history-5.3.0.tgz#1548abaa245ba47992f063a0783db91ef201c73b"
   integrity sha512-ZqaKwjjrAYUYfLG+htGaIIZ4nioX2L70ZUMIFysS3xvBsSG4x/n1V6TXV3N8ZYNuFGlDirFg32T7B6WOUPDYcQ==
@@ -5785,20 +5795,22 @@ react-lifecycles-compat@^3.0.2:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/react-lifecycles-compat/-/react-lifecycles-compat-3.0.4.tgz#4f1a273afdfc8f3488a8c516bfda78f872352362"
 
-react-router-dom@6:
-  version "6.3.0"
-  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-6.3.0.tgz#a0216da813454e521905b5fa55e0e5176123f43d"
-  integrity sha512-uaJj7LKytRxZNQV8+RbzJWnJ8K2nPsOOEuX7aQstlMZKQT0164C+X2w6bnkqU3sjtLvpd5ojrezAyfZ1+0sStw==
+react-router-dom@7:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-7.0.1.tgz#b1438100800313e1b4c48da0c5fdb498f81c7f96"
+  integrity sha512-duBzwAAiIabhFPZfDjcYpJ+f08TMbPMETgq254GWne2NW1ZwRHhZLj7tpSp8KGb7JvZzlLcjGUnqLxpZQVEPng==
   dependencies:
-    history "^5.2.0"
-    react-router "6.3.0"
+    react-router "7.0.1"
 
-react-router@6.3.0:
-  version "6.3.0"
-  resolved "https://registry.yarnpkg.com/react-router/-/react-router-6.3.0.tgz#3970cc64b4cb4eae0c1ea5203a80334fdd175557"
-  integrity sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==
+react-router@7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/react-router/-/react-router-7.0.1.tgz#a171e35a5c6463f76b23353c4ce57b53c8b7b1b9"
+  integrity sha512-WVAhv9oWCNsja5AkK6KLpXJDSJCQizOIyOd4vvB/+eHGbYx5vkhcmcmwWjQ9yqkRClogi+xjEg9fNEOd5EX/tw==
   dependencies:
-    history "^5.2.0"
+    "@types/cookie" "^0.6.0"
+    cookie "^1.0.1"
+    set-cookie-parser "^2.6.0"
+    turbo-stream "2.4.0"
 
 react-transition-group@^4.0.0:
   version "4.4.5"
@@ -6279,6 +6291,11 @@ serialize-javascript@^6.0.0:
 set-blocking@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/set-blocking/-/set-blocking-2.0.0.tgz#045f9782d011ae9a6803ddd382b24392b3d890f7"
+
+set-cookie-parser@^2.6.0:
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/set-cookie-parser/-/set-cookie-parser-2.7.1.tgz#3016f150072202dfbe90fadee053573cc89d2943"
+  integrity sha512-IOc8uWeOZgnb3ptbCURJWNjWUPcO3ZnTTdzsurqERrP6nPyv+paC55vJM0LpOlT2ne+Ix+9+CRG1MNLlyZ4GjQ==
 
 set-value@^0.4.3:
   version "0.4.3"
@@ -6985,6 +7002,11 @@ tunnel-agent@^0.6.0:
   resolved "https://registry.yarnpkg.com/tunnel-agent/-/tunnel-agent-0.6.0.tgz#27a5dea06b36b04a0a9966774b290868f0fc40fd"
   dependencies:
     safe-buffer "^5.0.1"
+
+turbo-stream@2.4.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/turbo-stream/-/turbo-stream-2.4.0.tgz#1e4fca6725e90fa14ac4adb782f2d3759a5695f0"
+  integrity sha512-FHncC10WpBd2eOmGwpmQsWLDoK4cqsA/UT/GqNoaKOQnT8uzhtCbg3EoUDMvqpOSAI0S26mr0rkjzbOO6S3v1g==
 
 tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"

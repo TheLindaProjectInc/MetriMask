@@ -23,6 +23,8 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     color: theme.palette.text.primary,
     fontSize: theme.font.sm,
     marginBottom: theme.padding.md,
+    wordBreak: 'break-all',
+    flex: 1,
   },
   amountContainer: {
     width: '100%',
@@ -54,13 +56,18 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     width: '100%',
     flexDirection: 'row',
     display: 'inline-flex',
-    alignItems: 'baseline',
+    alignItems: 'flex-start',
   },
   addrCopyButton: {
     width: '2rem',
     minHeight: '0px',
     minWidth: '0px',
     flex: 'none',
+    alignSelf: 'flex-start',
+  },
+  copyIcon: {
+    fontSize: theme.font.lg,
+    color: theme.palette.primary.main,
   },
 });
 

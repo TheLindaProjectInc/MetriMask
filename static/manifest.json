@@ -12,8 +12,13 @@
   },
   "permissions": [
     "storage",
-	  "scripting"
+	  "scripting",
+    "sidePanel",
+    "activeTab"
   ],
+  "side_panel": {
+    "default_path": "home.html"
+  },
   "background": {
     "service_worker": "service_worker.js"
   },
@@ -74,10 +79,9 @@
   ],
   "action": {
     "default_title": "MetriMask",
-    "default_icon": "images/logo-main-128.png",
-    "default_popup": "popup.html"
+    "default_icon": "images/logo-main-128.png"
   },
   "host_permissions": [
-    "*://*/*"
+    "<all_urls>"
   ]
 }

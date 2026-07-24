@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component } from 'react';
-import { Typography, Select, MenuItem, TextField, Button, withStyles, WithStyles } from '@material-ui/core';
-import { ArrowDropDown } from '@material-ui/icons';
+import {
+  Typography, Select, MenuItem, TextField, Button, IconButton, CircularProgress, withStyles, WithStyles,
+} from '@material-ui/core';
+import { CropFree } from '@material-ui/icons';
 import { inject, observer } from 'mobx-react';
 import { map } from 'lodash';
 
@@ -68,29 +70,28 @@ const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any)
   <Typography className={classes.fieldHeading}>{name}</Typography>
 ));
 
-const FromField = observer(({ classes, store: { sendStore, sessionStore } }: any) => (
-  <div className={classes.fieldContainer}>
-    <Heading name="From" />
-    <div className={classes.fieldContentContainer}>
-      <Select
-        className={classes.selectOrTextField}
-        inputProps={{ name: 'from', id: 'from'}}
-        disableUnderline
-        value={sessionStore.info.addrStr}
-        onChange={(event) => sendStore.senderAddress = event.target.value}
-      >
-        <MenuItem value={sessionStore.info.addrStr}>
-          <Typography className={classes.fieldTextOrInput}>{sessionStore.loggedInAccountName}</Typography>
-        </MenuItem>
-      </Select>
+const DetailField: React.FC<any> = ({ classes, label, value }: any) => (
+  <div className={classes.detailField}>
+    <Typography className={classes.detailLabel}>{label}:</Typography>
+    <Typography className={classes.detailValue}>{value}</Typography>
+  </div>
+);
+
+const FromField = observer(({ classes, store: { sessionStore } }: any) => (
+  <div className={classes.fromCard}>
+    <Typography className={classes.fromCardName}>{sessionStore.loggedInAccountName}</Typography>
+    <div className={classes.detailRow}>
+      <DetailField classes={classes} label="Network" value={sessionStore.networkName} />
+      <DetailField classes={classes} label="Balance" value={`${sessionStore.info.balance} MRX`} />
     </div>
+    <DetailField classes={classes} label="Address" value={sessionStore.info.addrStr} />
   </div>
 ));
 
 const ToField = observer(({ classes, store: { sendStore, sessionStore }, onEnterPress }: any) => (
   <div className={classes.fieldContainer}>
     <Heading name="To" />
-    <div className={classes.fieldContentContainer}>
+    <div className={classes.fieldTextContainer}>
       <TextField
         className={classes.selectOrTextField}
         fullWidth
@@ -98,13 +99,30 @@ const ToField = observer(({ classes, store: { sendStore, sessionStore }, onEnter
         multiline={false}
         placeholder={sessionStore.info.addrStr}
         value={sendStore.receiverAddress || ''}
-        InputProps={{ className: classes.fieldTextOrInput, endAdornment: <ArrowDropDown />, disableUnderline: true }}
+        InputProps={{
+          className: classes.fieldTextOrInput,
+          endAdornment: (
+            <IconButton
+              className={classes.qrScanButton}
+              disabled={sendStore.qrScanning}
+              onClick={() => sendStore.scanQrFromPage()}
+            >
+              {sendStore.qrScanning
+                ? <CircularProgress size={18} className={classes.qrScanSpinner} />
+                : <CropFree className={classes.qrScanIcon} />}
+            </IconButton>
+          ),
+          disableUnderline: true,
+        }}
         onChange={(event) => sendStore.receiverAddress = event.target.value}
         onKeyPress={onEnterPress}
       />
     </div>
     {!!sendStore.receiverAddress && sendStore.receiverFieldError && (
       <Typography className={classes.errorText}>{sendStore.receiverFieldError}</Typography>
+    )}
+    {sendStore.qrScanError && (
+      <Typography className={classes.errorText}>{sendStore.qrScanError}</Typography>
     )}
   </div>
 ));
@@ -144,7 +162,7 @@ const AmountField = observer(({ classes, store: { sendStore }, onEnterPress }: a
         Max
       </Button>
     </div>
-    <div className={classes.fieldContentContainer}>
+    <div className={classes.fieldTextContainer}>
       <TextField
         className={classes.selectOrTextField}
         fullWidth
@@ -210,7 +228,7 @@ const GasLimitField = observer(({ classes, store: { sendStore }, onEnterPress }:
         Recommended
       </Button>
     </div>
-    <div className={classes.fieldContentContainer}>
+    <div className={classes.fieldTextContainer}>
       <TextField
         className={classes.selectOrTextField}
         fullWidth
@@ -255,7 +273,7 @@ const GasPriceField = observer(({ classes, store: { sendStore }, onEnterPress }:
         Recommended
       </Button>
     </div>
-    <div className={classes.fieldContentContainer}>
+    <div className={classes.fieldTextContainer}>
       <TextField
         className={classes.selectOrTextField}
         fullWidth

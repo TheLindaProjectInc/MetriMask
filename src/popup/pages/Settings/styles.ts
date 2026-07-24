@@ -27,9 +27,16 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     marginBottom: theme.padding.md,
   },
   fieldContentContainer: {
-    padding: theme.padding.sm,
-    border: theme.border.root,
-    borderRadius: theme.border.radius,
+    padding: `${theme.padding.unit} ${theme.padding.md}`,
+    border: `2px solid ${theme.palette.primary.main}`,
+    borderRadius: theme.button.lg.radius,
+  },
+  switchRow: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   select: {
     width: '100%',

@@ -3,8 +3,10 @@ import { StyleRulesCallback, Theme } from '@material-ui/core';
 const styles: StyleRulesCallback = (theme: Theme) => ({
   root: {
     margin: theme.padding.md,
+    paddingBottom: theme.padding.sm,
     flexDirection: 'row',
     display: 'flex',
+    borderBottom: `2px solid ${theme.palette.divider}`,
   },
   leftButtonsContainer: {
     marginRight: theme.padding.unit,
@@ -23,16 +25,6 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   settingsIconButton: {
     width: theme.icon.size,
     height: theme.icon.size,
-  },
-  fullScreenIconButton: {
-    width: theme.icon.size,
-    height: theme.icon.size,
-  },
-  fullScreenButton: {
-    fontSize: theme.font.md,
-    '&.white': {
-      color: theme.palette.secondary.main,
-    },
   },
   settingsButton: {
     fontSize: 18,

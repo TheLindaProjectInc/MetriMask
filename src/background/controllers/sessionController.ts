@@ -11,6 +11,7 @@ export default class SessionController extends IController {
   public sessionTimeout?: number = undefined;
 
   private sessionLogoutInterval = 600000; // in ms
+  private darkMode = false;
 
   constructor(main: MetriMaskController) {
     super('session', main);
@@ -21,6 +22,13 @@ export default class SessionController extends IController {
           this.sessionLogoutInterval = walletTimeout;
         }
         console.log('Session Logout Interval set to: ' + this.sessionLogoutInterval.toString());
+    });
+
+    // Check for dark mode preference in local storage
+    chrome.storage.local.get([STORAGE.DARK_MODE], ({ darkMode }) => {
+      if (darkMode !== undefined) {
+        this.darkMode = darkMode;
+      }
     });
 
       chrome.runtime.onMessage.addListener(this.handleMessage);
@@ -110,6 +118,16 @@ export default class SessionController extends IController {
             () => {
               this.sessionLogoutInterval = request.value;
               console.log('walletTimeout set');
+            }
+          );
+          break;
+        case MESSAGE_TYPE.GET_DARK_MODE:
+          sendResponse(this.darkMode);
+          break;
+        case MESSAGE_TYPE.SAVE_DARK_MODE:
+          chrome.storage.local.set({ [STORAGE.DARK_MODE]: request.value },
+            () => {
+              this.darkMode = request.value;
             }
           );
           break;

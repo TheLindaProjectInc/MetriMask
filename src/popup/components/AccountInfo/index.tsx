@@ -12,6 +12,13 @@ interface IProps {
   hasRightArrow?: boolean;
 }
 
+const DetailField: React.FC<any> = ({ classes, label, value }: any) => (
+  <div className={classes.detailField}>
+    <Typography className={classes.detailLabel}>{label}:</Typography>
+    <Typography className={classes.detailValue}>{value}</Typography>
+  </div>
+);
+
 @inject('store')
 @observer
 class AccountInfo extends Component<WithStyles & IProps, {}> {
@@ -34,7 +41,8 @@ class AccountInfo extends Component<WithStyles & IProps, {}> {
       info,
       metrixBalanceUSD,
       networkBalAnnotation,
-      hexAddr
+      networkName,
+      hexAddr,
     } = this.props.store!.sessionStore;
 
     if (!loggedInAccountName || !info) {
@@ -44,11 +52,15 @@ class AccountInfo extends Component<WithStyles & IProps, {}> {
     return info && (
       <div className={classes.root}>
         <Typography className={classes.acctName}>{loggedInAccountName}</Typography>
-        <Typography className={classes.address}>Address: {info.addrStr}</Typography>
-        <Typography className={classes.address}>Hex: {hexAddr}</Typography>
+        <div className={classes.detailRow}>
+          <DetailField classes={classes} label="Network" value={networkName} />
+          <DetailField classes={classes} label="Unconfirmed MRX" value={info.unconfirmedBalance} />
+        </div>
+        <DetailField classes={classes} label="Address" value={info.addrStr} />
+        <DetailField classes={classes} label="Hex" value={hexAddr} />
+        <Typography className={classes.detailLabel}>MRX Balance:</Typography>
         <div className={classes.amountContainer}>
           <Typography className={classes.tokenAmount}>{info.balance}</Typography>
-          <Typography className={classes.token}>MRX</Typography>
           {hasRightArrow && <KeyboardArrowRight className={classes.rightArrow} />}
         </div>
         <Typography className={classes.balanceUSD}>{`${metrixBalanceUSD} ${networkBalAnnotation}`}</Typography>

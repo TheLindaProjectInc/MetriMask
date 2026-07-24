@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component } from 'react';
 import { inject, observer } from 'mobx-react';
-import { Typography, Select, MenuItem, withStyles, WithStyles  } from '@material-ui/core';
+import { Typography, Select, MenuItem, Switch, withStyles, WithStyles  } from '@material-ui/core';
 import { map } from 'lodash';
 
 import styles from './styles';
@@ -26,6 +26,7 @@ class Settings extends Component<WithStyles & IProps, {}> {
         <div className={classes.contentContainer}>
           <div className={classes.fieldsContainer}>
             <SliField {...this.props} />
+            <DarkModeField {...this.props} />
           </div>
         </div>
       </div>
@@ -50,6 +51,19 @@ const SliField: React.FC<any> = observer(({ classes, store: { settingsStore } }:
         </MenuItem>,
       )}
       </Select>
+    </div>
+  </div>
+));
+
+const DarkModeField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
+  <div className={classes.fieldContainer}>
+    <div className={classes.switchRow}>
+      <Heading name="Dark Mode" />
+      <Switch
+        color="primary"
+        checked={settingsStore.darkMode}
+        onChange={(event) => settingsStore.changeDarkMode(event.target.checked)}
+      />
     </div>
   </div>
 ));

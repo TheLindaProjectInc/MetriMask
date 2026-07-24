@@ -3,7 +3,7 @@ import React, { Fragment } from 'react';
 import { inject, observer } from 'mobx-react';
 
 import { Typography, Menu, MenuItem, IconButton, withStyles } from '@material-ui/core';
-import { ArrowBack, Settings, Fullscreen } from '@material-ui/icons';
+import { ArrowBack, Settings } from '@material-ui/icons';
 import cx from 'classnames';
 
 import DropDownMenu from '../DropDownMenu';
@@ -48,18 +48,9 @@ const NavBar: React.FC<IProps> = inject('store')(observer((props: IProps) => {
         selectedIndex={sessionStore.networkIndex}
         />
       )}
-      <FullScreenButton {...props} />
     </div>
   );
 }));
-
-const FullScreenButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { navBarStore }}: any) => (
-  <IconButton color="primary" onClick={() => navBarStore.fullScreen() }
-  className={classes.fullScreenIconButton}
-  >
-    <Fullscreen className={cx(classes.fullScreenButton, isDarkTheme ? 'white' : '')} />
-  </IconButton>
-);
 
 const BackButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { routerStore } }: any) => (
   <IconButton onClick={() => routerStore.go(-1)} className={classes.backIconButton}>

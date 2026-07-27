@@ -14,7 +14,8 @@
     "storage",
 	  "scripting",
     "sidePanel",
-    "activeTab"
+    "activeTab",
+    "idle"
   ],
   "side_panel": {
     "default_path": "home.html"

@@ -28,9 +28,46 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     marginBottom: theme.padding.sm,
   },
   fieldContentContainer: {
+    padding: `${theme.padding.unit} ${theme.padding.md}`,
+    border: `2px solid ${theme.palette.primary.main}`,
+    borderRadius: theme.button.lg.radius,
+  },
+  fieldTextContainer: {
     padding: theme.padding.xs,
-    border: theme.border.root,
-    borderRadius: theme.border.radius,
+    background: theme.card.background,
+    borderRadius: theme.card.radius,
+  },
+  fromCard: {
+    padding: theme.padding.md,
+    marginBottom: theme.padding.sm,
+    background: theme.card.background,
+    border: theme.card.border,
+    borderRadius: theme.card.radius,
+  },
+  fromCardName: {
+    fontSize: theme.font.lg,
+    fontWeight: theme.fontWeight.bold,
+    color: theme.palette.text.primary,
+    marginBottom: theme.padding.sm,
+  },
+  detailRow: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+  },
+  detailField: {
+    flex: 1,
+    marginBottom: theme.padding.sm,
+  },
+  detailLabel: {
+    fontSize: theme.font.xs,
+    color: theme.palette.text.secondary,
+    marginBottom: theme.padding.halfUnit,
+  },
+  detailValue: {
+    fontSize: theme.font.sm,
+    fontWeight: theme.fontWeight.bold,
+    color: theme.palette.text.primary,
   },
   errorText: {
     fontSize: theme.font.xs,
@@ -76,6 +113,18 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   sendButton: {
     height: theme.button.lg.height,
     borderRadius: theme.button.lg.radius,
+  },
+  qrScanButton: {
+    padding: theme.padding.unit,
+    width: theme.icon.size,
+    height: theme.icon.size,
+  },
+  qrScanIcon: {
+    fontSize: theme.font.lg,
+    color: theme.palette.primary.main,
+  },
+  qrScanSpinner: {
+    color: theme.palette.primary.main,
   },
 });
 

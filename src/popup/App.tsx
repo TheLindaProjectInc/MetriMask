@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import { Provider as MobxProvider, observer } from 'mobx-react';
 import { MuiThemeProvider } from '@material-ui/core/styles';
+import CssBaseline from '@material-ui/core/CssBaseline';
 import { syncHistoryWithStore } from 'mobx-react-router';
 import { createBrowserHistory } from 'history';
 
-import theme from './theme';
+import { lightTheme, darkTheme } from './theme';
 import { store } from './stores/AppStore';
 import MainContainer from './MainContainer';
 
@@ -23,9 +24,12 @@ interface IState {
 @observer
 class App extends Component<IProps, IState> {
   public render() {
+    const theme = store.settingsStore.darkMode ? darkTheme : lightTheme;
+
     return (
       <MobxProvider store={store} >
         <MuiThemeProvider theme={theme}>
+          <CssBaseline />
           <MainContainer history={history} />
         </MuiThemeProvider>
       </MobxProvider>

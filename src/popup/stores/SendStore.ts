@@ -6,6 +6,9 @@ import { SEND_STATE, MESSAGE_TYPE, TRANSACTION_SPEED } from '../../constants';
 import { isValidAddress, isValidAmount, isValidGasLimit, isValidGasPrice } from '../../utils';
 import MRCToken from '../../models/MRCToken';
 import Config from '../../config';
+import {
+  decodeQrCodesFromDataUrl, parseAddressFromQrText, getTabDevicePixelRatio, injectQrOverlay,
+} from '../utils/qrOverlay';
 
 const INIT_VALUES = {
   tokens: [],
@@ -40,6 +43,8 @@ export default class SendStore {
   public gasPriceRecommendedAmount: number = INIT_VALUES.gasPriceRecommendedAmount;
   @observable public sendState: SEND_STATE = INIT_VALUES.sendState;
   @observable public errorMessage?: string = INIT_VALUES.errorMessage;
+  @observable public qrScanning = false;
+  @observable public qrScanError?: string = undefined;
   @computed public get maxTxFee(): number | undefined {
     return this.gasPrice && this.gasLimit
       ? Number(this.gasLimit) * Number(this.gasPrice) * 1e-8 : undefined;
@@ -89,6 +94,44 @@ export default class SendStore {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.GET_MAX_MRX_SEND,
     });
+  };
+
+  @action
+  public scanQrFromPage = async () => {
+    this.qrScanError = undefined;
+    this.qrScanning = true;
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab || !tab.id || !tab.windowId) {
+        console.error('scanQrFromPage: no active tab found', tab);
+        this.qrScanError = 'Cannot scan this page.';
+        return;
+      }
+
+      let dataUrl: string;
+      try {
+        dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+      } catch (err) {
+        console.error('scanQrFromPage: captureVisibleTab failed for', tab.url, err);
+        this.qrScanError = 'Cannot scan this page.';
+        return;
+      }
+
+      const boxes = await decodeQrCodesFromDataUrl(dataUrl);
+      if (boxes.length === 0) {
+        this.qrScanError = 'No QR code found on this page.';
+        return;
+      }
+
+      const dpr = await getTabDevicePixelRatio(tab.id);
+      await injectQrOverlay(tab.id, boxes.map((box) => ({ ...box, text: parseAddressFromQrText(box.text) })), dpr);
+    } catch (err) {
+      console.error('scanQrFromPage: unexpected failure', err);
+      this.qrScanError = 'Cannot scan this page.';
+    } finally {
+      this.qrScanning = false;
+    }
   };
 
   @action
@@ -145,6 +188,9 @@ export default class SendStore {
       case MESSAGE_TYPE.GET_MAX_MRX_SEND_RETURN:
         const metrixToken = this.tokens[0];
         this.maxMetrixSend = request.maxMetrixAmount / (10 ** metrixToken.decimals);
+        break;
+      case MESSAGE_TYPE.QR_CODE_SELECTED:
+        this.receiverAddress = request.address;
         break;
       default:
         break;

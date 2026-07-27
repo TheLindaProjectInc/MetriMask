@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { inject, observer } from 'mobx-react';
 import { Button, Typography, withStyles, WithStyles } from '@material-ui/core';
+import { FileCopy } from '@material-ui/icons';
 import QRCode from 'qrcode.react';
 
 import styles from './styles';
@@ -17,7 +18,13 @@ interface IProps {
 class Receive extends Component<WithStyles & IProps, {}> {
   public render() {
     const { classes } = this.props;
-    const { loggedInAccountName, info, metrixBalanceUSD, networkBalAnnotation } = this.props.store.sessionStore;
+    const {
+      loggedInAccountName,
+      info,
+      metrixBalanceUSD,
+      networkBalAnnotation,
+      hexAddr,
+    } = this.props.store.sessionStore;
 
     if (!loggedInAccountName || !info) {
       return null;
@@ -33,7 +40,15 @@ class Receive extends Component<WithStyles & IProps, {}> {
             <Button className={classes.addrCopyButton}
             id="addrCopyButton"
             onClick={() => {navigator.clipboard.writeText(info.addrStr); }}>
-              <img src="images/clipboard-solid.svg" />
+              <FileCopy className={classes.copyIcon} />
+            </Button>
+          </div>
+          <div className={classes.receiveContainer}>
+            <Typography className={classes.accountAddress}>Hex: {hexAddr}</Typography>
+            <Button className={classes.addrCopyButton}
+            id="hexAddrCopyButton"
+            onClick={() => {navigator.clipboard.writeText(hexAddr || ''); }}>
+              <FileCopy className={classes.copyIcon} />
             </Button>
           </div>
           <div className={classes.amountContainer}>

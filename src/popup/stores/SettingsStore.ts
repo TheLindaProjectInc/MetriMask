@@ -4,12 +4,14 @@ import { INTERVAL_NAMES, MESSAGE_TYPE } from '../../constants';
 import { SessionLogoutInterval } from '../../models/SessionLogoutInterval';
 
 const INIT_VALUES = {
-  sessionLogoutInterval: 60000
+  sessionLogoutInterval: 60000,
+  darkMode: false
 };
 
 export default class SettingsStore {
   @observable public sessionLogoutInterval: number =
     INIT_VALUES.sessionLogoutInterval;
+  @observable public darkMode: boolean = INIT_VALUES.darkMode;
 
   public sliArray: SessionLogoutInterval[];
 
@@ -18,6 +20,13 @@ export default class SettingsStore {
       { type: MESSAGE_TYPE.GET_SESSION_LOGOUT_INTERVAL },
       (response: any) => {
         this.sessionLogoutInterval = response;
+      }
+    );
+
+    chrome.runtime.sendMessage(
+      { type: MESSAGE_TYPE.GET_DARK_MODE },
+      (response: any) => {
+        this.darkMode = !!response;
       }
     );
 
@@ -36,6 +45,14 @@ export default class SettingsStore {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.SAVE_SESSION_LOGOUT_INTERVAL,
       value: this.sessionLogoutInterval
+    });
+  };
+
+  public changeDarkMode = (darkMode: boolean) => {
+    this.darkMode = darkMode;
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPE.SAVE_DARK_MODE,
+      value: this.darkMode
     });
   };
 }

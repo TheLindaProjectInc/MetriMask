@@ -13,7 +13,7 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   },
   accountDetailPaper: {
     background: theme.color.gradientPurple,
-    borderRadius: 0,
+    borderRadius: `${theme.card.radius} ${theme.card.radius} 0 0`,
   },
   tabsPaper: {
     borderRadius: 0,
@@ -36,7 +36,7 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     width: '100%',
     cursor: 'pointer',
     display: 'inline-flex',
-    background: 'linear-gradient(90deg, #82307F, #ffffff)',
+    background: `linear-gradient(90deg, ${theme.palette.primary.light}, ${theme.palette.background.default})`,
     backgroundSize: '500%',
     animation: '$gradient 4s ease infinite',
     paddingLeft: '8px',

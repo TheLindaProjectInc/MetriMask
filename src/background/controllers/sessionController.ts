@@ -7,10 +7,11 @@ import {
   STORAGE
 } from '../../constants';
 
-export default class SessionController extends IController {
-  public sessionTimeout?: number = undefined;
+const MIN_IDLE_DETECTION_SECONDS = 15; // chrome.idle.setDetectionInterval enforces this floor
 
+export default class SessionController extends IController {
   private sessionLogoutInterval = 600000; // in ms
+  private darkMode = false;
 
   constructor(main: MetriMaskController) {
     super('session', main);
@@ -21,19 +22,46 @@ export default class SessionController extends IController {
           this.sessionLogoutInterval = walletTimeout;
         }
         console.log('Session Logout Interval set to: ' + this.sessionLogoutInterval.toString());
+        this.applyIdleDetectionInterval();
+    });
+
+    // Check for dark mode preference in local storage
+    chrome.storage.local.get([STORAGE.DARK_MODE], ({ darkMode }) => {
+      if (darkMode !== undefined) {
+        this.darkMode = darkMode;
+      }
     });
 
       chrome.runtime.onMessage.addListener(this.handleMessage);
-      // When popup is opened
-      chrome.runtime.onConnect.addListener((port) => {
-        this.onPopupOpened();
-
-        // Add listener for when popup is closed
-        port.onDisconnect.addListener(() => this.onPopupClosed());
-      });
+      // The wallet's UI (side panel) can stay open and mounted indefinitely, so auto-logout
+      // can't be tied to the popup closing/reopening any more -- use OS-level input idle
+      // detection instead, which works regardless of whether the UI is currently open.
+      chrome.idle.onStateChanged.addListener(this.handleIdleStateChanged);
 
       this.initFinished();
   }
+
+  /*
+   * Keeps chrome.idle's detection threshold in sync with the configured session logout
+   * interval (skipped entirely when the interval is 0, i.e. "None").
+   */
+  private applyIdleDetectionInterval = () => {
+    if (this.sessionLogoutInterval > 0) {
+      chrome.idle.setDetectionInterval(
+        Math.max(MIN_IDLE_DETECTION_SECONDS, Math.round(this.sessionLogoutInterval / 1000))
+      );
+    }
+  };
+
+  private handleIdleStateChanged = (state: chrome.idle.IdleState) => {
+    if (
+      this.sessionLogoutInterval > 0 &&
+      (state === 'idle' || state === 'locked') &&
+      this.main.account.loggedInAccount
+    ) {
+      this.main.account.logoutAccount();
+    }
+  };
 
   /*
    * Clears all the intervals throughout the app.
@@ -60,31 +88,6 @@ export default class SessionController extends IController {
     this.main.transaction.stopPolling();
   };
 
-  /*
-   * Actions taken when the popup is opened.
-   */
-  private onPopupOpened = () => {
-    // If port is reconnected (user reopened the popup), clear sessionTimeout
-    clearTimeout(this.sessionTimeout);
-  };
-
-  /*
-   * Actions taken when the popup is closed..
-   */
-  private onPopupClosed = () => {
-    this.clearAllIntervalsExceptAccount();
-
-    // Check if session logout is enabled
-    if (this.sessionLogoutInterval > 0) {
-      // Logout from bgp after interval
-      this.sessionTimeout = self.setTimeout(() => {
-        this.clearSession();
-        this.main.crypto.resetPasswordHash();
-        console.log('Session cleared');
-      }, this.sessionLogoutInterval);
-    }
-  };
-
   private handleMessage = (
     request: any,
     _: chrome.runtime.MessageSender,
@@ -109,7 +112,18 @@ export default class SessionController extends IController {
           chrome.storage.local.set({ [STORAGE.WALLET_TIMEOUT]: request.value },
             () => {
               this.sessionLogoutInterval = request.value;
+              this.applyIdleDetectionInterval();
               console.log('walletTimeout set');
+            }
+          );
+          break;
+        case MESSAGE_TYPE.GET_DARK_MODE:
+          sendResponse(this.darkMode);
+          break;
+        case MESSAGE_TYPE.SAVE_DARK_MODE:
+          chrome.storage.local.set({ [STORAGE.DARK_MODE]: request.value },
+            () => {
+              this.darkMode = request.value;
             }
           );
           break;

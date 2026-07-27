@@ -8,30 +8,40 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     fontSize: theme.font.lg,
     fontWeight: theme.fontWeight.bold,
     color: theme.palette.secondary.main,
-    marginBottom: theme.padding.unit,
+    marginBottom: theme.padding.sm,
   },
-  address: {
-    fontSize: theme.font.sm,
+  detailRow: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+  },
+  detailField: {
+    flex: 1,
+    marginBottom: theme.padding.sm,
+  },
+  detailLabel: {
+    fontSize: theme.font.xs,
     color: theme.palette.secondary.main,
-    marginBottom: theme.padding.md,
+    opacity: 0.6,
+    marginBottom: theme.padding.halfUnit,
+  },
+  detailValue: {
+    fontSize: theme.font.sm,
+    fontWeight: theme.fontWeight.bold,
+    color: theme.palette.secondary.main,
+    wordBreak: 'break-all',
   },
   amountContainer: {
     width: '100%',
     flexDirection: 'row',
     display: 'inline-flex',
+    alignItems: 'center',
   },
   tokenAmount: {
     fontSize: 32,
     fontWeight: theme.fontWeight.bold,
     color: theme.palette.secondary.main,
     marginRight: theme.padding.xs,
-  },
-  token: {
-    fontSize: theme.font.sm,
-    color: theme.palette.secondary.main,
-    flex: 1,
-    alignSelf: 'flex-end',
-    marginBottom: 6,
   },
   rightArrow: {
     fontSize: 22,

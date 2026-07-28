@@ -1,0 +1,41 @@
+diff --git a/node_modules/metrixjs-wallet/lib/Insight.d.ts b/node_modules/metrixjs-wallet/lib/Insight.d.ts
+index eeebc2a..3be29f2 100644
+--- a/node_modules/metrixjs-wallet/lib/Insight.d.ts
++++ b/node_modules/metrixjs-wallet/lib/Insight.d.ts
+@@ -3,6 +3,8 @@ import { INetworkInfo } from "./Network";
+ export declare class Insight {
+     private baseURL;
+     static forNetwork(network: INetworkInfo): Insight;
++    static setBaseURLOverride(networkName: string, baseURL: string): void;
++    static clearBaseURLOverride(networkName: string): void;
+     private fetchApi;
+     constructor(baseURL: string);
+     static toSatoshi(amount: number | Big): number | Big;
+diff --git a/node_modules/metrixjs-wallet/lib/Insight.js b/node_modules/metrixjs-wallet/lib/Insight.js
+index 3e4ef64..48d62b1 100644
+--- a/node_modules/metrixjs-wallet/lib/Insight.js
++++ b/node_modules/metrixjs-wallet/lib/Insight.js
+@@ -18,6 +18,7 @@ const INSIGHT_BASEURLS = {
+     [constants_1.NetworkNames.TESTNET]: "https://testnet-explorer.metrixcoin.com/api",
+     [constants_1.NetworkNames.REGTEST]: "http://localhost:3001/api",
+ };
++const INSIGHT_BASEURL_OVERRIDES = {};
+ class Insight {
+     constructor(baseURL) {
+         this.baseURL = baseURL;
+@@ -29,8 +30,14 @@ class Insight {
+     // public static testnet(): Insight {
+     //   return new Insight(TESTNET_API_BASEURL)
+     // }
++    static setBaseURLOverride(networkName, baseURL) {
++        INSIGHT_BASEURL_OVERRIDES[networkName] = baseURL;
++    }
++    static clearBaseURLOverride(networkName) {
++        delete INSIGHT_BASEURL_OVERRIDES[networkName];
++    }
+     static forNetwork(network) {
+-        const baseURL = INSIGHT_BASEURLS[network.name];
++        const baseURL = INSIGHT_BASEURL_OVERRIDES[network.name] || INSIGHT_BASEURLS[network.name];
+         if (baseURL == null) {
+             throw new Error(`No Insight API defined for network: ${network.name}`);
+         }

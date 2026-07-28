@@ -42,7 +42,7 @@ export default class AppStore {
     this.savePrivateKeyStore = new SavePrivateKeyStore(this);
     this.accountLoginStore = new AccountLoginStore(this);
     this.importStore = new ImportStore(this);
-    this.settingsStore = new SettingsStore();
+    this.settingsStore = new SettingsStore(this);
     this.accountDetailStore = new AccountDetailStore(this);
     this.sendStore = new SendStore(this);
     this.addTokenStore = new AddTokenStore(this);

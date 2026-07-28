@@ -1,13 +1,13 @@
 {
   "name": "metrimask",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "clean": "rm -rf dist",
     "start": "yarn clean && mkdir dist && ./scripts/create-empty-thunk.sh && webpack --config webpack.dev.config.js --watch --devtool eval-cheap-module-source-map & yarn css-types -w",
     "build": "yarn clean && webpack --mode production --config webpack.prod.config.js && ./scripts/create-empty-thunk.sh",
     "css-types": "tcm src",
-    "postinstall": "yarn css-types",
+    "postinstall": "patch-package && yarn css-types",
     "lint": "eslint -c .eslintrc.js --ext .ts,.tsx src/**",
     "lint-fix": "eslint -c .eslintrc.js --ext .ts,.tsx src/** --fix",
     "prepush": "npm run lint-fix"
@@ -37,6 +37,7 @@
     "lint-staged": "^13.0.3",
     "mini-css-extract-plugin": "^2.6.1",
     "node-polyfill-webpack-plugin": "^2.0.1",
+    "patch-package": "^8.0.1",
     "postcss-flexbugs-fixes": "^3.3.0",
     "postcss-loader": "5.0.0",
     "postcss-modules": "4.3.1",

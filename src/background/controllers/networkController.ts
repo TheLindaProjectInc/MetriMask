@@ -1,16 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { networks, Network } from 'metrixjs-wallet';
+import { networks, Network, Insight } from 'metrixjs-wallet';
 
 import MetriMaskController from '.';
 import IController from './iController';
 import { MESSAGE_TYPE, STORAGE, NETWORK_NAMES } from '../../constants';
 import QryNetwork from '../../models/QryNetwork';
 
+const DEFAULT_NETWORK_URLS: Record<string, string> = {
+  [NETWORK_NAMES.MAINNET]: 'https://explorer.metrixcoin.com/',
+  [NETWORK_NAMES.TESTNET]: 'https://testnet-explorer.metrixcoin.com/',
+  [NETWORK_NAMES.REGTEST]: 'http://localhost:3001/explorer/',
+};
+
+const normalizeBaseUrl = (url: string): string => (url.endsWith('/') ? url : `${url}/`);
+
 export default class NetworkController extends IController {
   public static NETWORKS: QryNetwork[] = [
-    new QryNetwork(NETWORK_NAMES.MAINNET, networks.mainnet, 'https://explorer.metrixcoin.com/'),
-    new QryNetwork(NETWORK_NAMES.TESTNET, networks.testnet, 'https://testnet-explorer.metrixcoin.com/'),
-    new QryNetwork(NETWORK_NAMES.REGTEST, networks.regtest, 'http://localhost:3001/explorer/'),
+    new QryNetwork(NETWORK_NAMES.MAINNET, networks.mainnet, DEFAULT_NETWORK_URLS[NETWORK_NAMES.MAINNET]),
+    new QryNetwork(NETWORK_NAMES.TESTNET, networks.testnet, DEFAULT_NETWORK_URLS[NETWORK_NAMES.TESTNET]),
+    new QryNetwork(NETWORK_NAMES.REGTEST, networks.regtest, DEFAULT_NETWORK_URLS[NETWORK_NAMES.REGTEST]),
   ];
 
   public get isMainNet(): boolean {
@@ -31,21 +39,45 @@ export default class NetworkController extends IController {
   public get networkName(): string {
     return NetworkController.NETWORKS[this.networkIndex].name;
   }
+  /*
+  * The RegTest network is only relevant to developers/testers, so it's hidden from the
+  * network switcher entirely unless explicitly enabled in Settings.
+  */
+  public get visibleNetworks(): QryNetwork[] {
+    return this.regtestEnabled ? NetworkController.NETWORKS : NetworkController.NETWORKS.slice(0, 2);
+  }
 
   private networkIndex = 0;
+  private regtestEnabled = false;
+  private endpointOverrides: Record<string, string> = {};
 
   constructor(main: MetriMaskController) {
     super('network', main);
 
     chrome.runtime.onMessage.addListener(this.handleMessage);
-    chrome.storage.local.get([STORAGE.NETWORK_INDEX], ({ networkIndex }: any) => {
-      if (networkIndex !== undefined) {
-        this.networkIndex = networkIndex;
-        chrome.runtime.sendMessage({ type: MESSAGE_TYPE.CHANGE_NETWORK_SUCCESS, networkIndex: this.networkIndex });
-      }
+    chrome.storage.local.get(
+      [STORAGE.NETWORK_INDEX, STORAGE.REGTEST_ENABLED, STORAGE.NETWORK_ENDPOINT_OVERRIDES],
+      ({ networkIndex, regtestEnabled, networkEndpointOverrides }: any) => {
+        if (regtestEnabled !== undefined) {
+          this.regtestEnabled = regtestEnabled;
+        }
 
-      this.initFinished();
-    });
+        if (networkEndpointOverrides !== undefined) {
+          this.endpointOverrides = networkEndpointOverrides;
+          Object.keys(this.endpointOverrides).forEach(
+            (name) => this.applyOverride(name, this.endpointOverrides[name])
+          );
+        }
+
+        if (networkIndex !== undefined) {
+          // Guard against a persisted RegTest selection from before it was disabled.
+          this.networkIndex = (!this.regtestEnabled && networkIndex === 2) ? 0 : networkIndex;
+          chrome.runtime.sendMessage({ type: MESSAGE_TYPE.CHANGE_NETWORK_SUCCESS, networkIndex: this.networkIndex });
+        }
+
+        this.initFinished();
+      }
+    );
   }
 
   /*
@@ -64,6 +96,59 @@ export default class NetworkController extends IController {
     }
   };
 
+  /*
+  * Sets (or, with an empty url, clears) a custom RPC/explorer endpoint for a network.
+  * Reconnects immediately only if the edited network is the one currently active.
+  */
+  public saveEndpointOverride = (networkName: string, url: string) => {
+    const index = NetworkController.NETWORKS.findIndex((n) => n.name === networkName);
+    if (index === -1) {
+      return;
+    }
+
+    if (url) {
+      const normalized = normalizeBaseUrl(url);
+      this.endpointOverrides[networkName] = normalized;
+      this.applyOverride(networkName, normalized);
+    } else {
+      delete this.endpointOverrides[networkName];
+      this.clearOverride(networkName);
+    }
+
+    chrome.storage.local.set({ [STORAGE.NETWORK_ENDPOINT_OVERRIDES]: this.endpointOverrides });
+
+    if (index === this.networkIndex) {
+      this.main.account.logoutNetwork();
+    }
+  };
+
+  public saveRegtestEnabled = (enabled: boolean) => {
+    this.regtestEnabled = enabled;
+    chrome.storage.local.set({ [STORAGE.REGTEST_ENABLED]: enabled });
+
+    if (!enabled && this.networkIndex === 2) {
+      this.changeNetwork(0);
+    }
+  };
+
+  private applyOverride = (networkName: string, url: string) => {
+    const index = NetworkController.NETWORKS.findIndex((n) => n.name === networkName);
+    if (index === -1) {
+      return;
+    }
+    NetworkController.NETWORKS[index].explorerUrl = url;
+    Insight.setBaseURLOverride(NetworkController.NETWORKS[index].network.info.name, url + 'api');
+  };
+
+  private clearOverride = (networkName: string) => {
+    const index = NetworkController.NETWORKS.findIndex((n) => n.name === networkName);
+    if (index === -1) {
+      return;
+    }
+    NetworkController.NETWORKS[index].explorerUrl = DEFAULT_NETWORK_URLS[networkName];
+    Insight.clearBaseURLOverride(NetworkController.NETWORKS[index].network.info.name);
+  };
+
   private handleMessage = (request: any, _: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     try {
       switch (request.type) {
@@ -71,7 +156,7 @@ export default class NetworkController extends IController {
           this.changeNetwork(request.networkIndex);
           break;
         case MESSAGE_TYPE.GET_NETWORKS:
-          sendResponse(NetworkController.NETWORKS);
+          sendResponse(this.visibleNetworks);
           break;
         case MESSAGE_TYPE.GET_NETWORK_INDEX:
           sendResponse(this.networkIndex);
@@ -84,6 +169,18 @@ export default class NetworkController extends IController {
           break;
         case MESSAGE_TYPE.GET_NETWORK_EXPLORER_MRC721_URL:
           sendResponse(this.mrc721Url);
+          break;
+        case MESSAGE_TYPE.GET_NETWORK_ENDPOINT_OVERRIDES:
+          sendResponse(this.endpointOverrides);
+          break;
+        case MESSAGE_TYPE.SAVE_NETWORK_ENDPOINT_OVERRIDE:
+          this.saveEndpointOverride(request.networkName, request.url);
+          break;
+        case MESSAGE_TYPE.GET_REGTEST_ENABLED:
+          sendResponse(this.regtestEnabled);
+          break;
+        case MESSAGE_TYPE.SAVE_REGTEST_ENABLED:
+          this.saveRegtestEnabled(request.enabled);
           break;
         default:
           break;

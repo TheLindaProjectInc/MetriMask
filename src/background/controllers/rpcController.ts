@@ -8,11 +8,14 @@ import assert from 'assert';
 import MetriMaskController from '.';
 import IController from './iController';
 import { MESSAGE_TYPE, RPC_METHOD } from '../../constants';
-import { IRPCCallResponse } from '../../types';
+import { IRPCCallResponse, IPendingExternalRequest, ICurrentAccount } from '../../types';
 import Config from '../../config';
 
 export default class RPCController extends IController {
   private static SCRYPT_PARAMS_PRIV_KEY: any = { N: 8192, r: 8, p: 1 };
+
+  private pendingExternalRequest?: IPendingExternalRequest;
+
   constructor(main: MetriMaskController) {
     super('rpc', main);
 
@@ -97,17 +100,61 @@ export default class RPCController extends IController {
   };
 
   /**
-   * Sends the RPC response or error to the active tab that requested.
+   * Sends the RPC response or error back to the tab that requested it.
    *
    * @param id Request ID.
    * @param result RPC call result.
    * @param error RPC call error.message, passed in and as a string because
    * chrome.tabs.sendMessage does not support passing the error object type
+   * @param tabId The originating tab, if known. Falls back to whatever tab is currently
+   * active -- used by call paths (raw RPC calls, message signing/verification) that don't
+   * go through the confirmation flow below and so never captured an originating tab.
    */
-  private sendRpcResponseToActiveTab = (id: string, result: any, error?: string) => {
+  private sendRpcResponseToActiveTab = (id: string, result: any, error?: string, tabId?: number) => {
+    if (tabId) {
+      chrome.tabs.sendMessage(tabId, { type: MESSAGE_TYPE.EXTERNAL_RPC_CALL_RETURN, id, result, error });
+      return;
+    }
+
     chrome.tabs.query({ active: true, currentWindow: true }, ([{ id: tabID }]) => {
       chrome.tabs.sendMessage(tabID!, { type: MESSAGE_TYPE.EXTERNAL_RPC_CALL_RETURN, id, result, error });
     });
+  };
+
+  /*
+  * Stores a pending dApp confirmation request (sendToContract or signMessage) and opens
+  * the side panel for the tab that requested it, so the user can confirm/reject it there.
+  */
+  private confirmExternalRequest = (
+    kind: 'sendToContract' | 'signMessage',
+    id: string,
+    args: any[],
+    account: ICurrentAccount,
+    tabId?: number
+  ) => {
+    if (!tabId) {
+      return;
+    }
+
+    this.pendingExternalRequest = { kind, id, args, account, tabId };
+
+    // @types/chrome@0.0.196 predates the sidePanel API's type definitions
+    (chrome as any).sidePanel.open({ tabId }).catch((err: any) => console.error(err));
+
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.EXTERNAL_CONFIRMATION_PENDING });
+  };
+
+  /*
+  * Rejects the pending external request (if any) -- used when the user cancels the
+  * confirmation in the side panel, so the dApp's pending promise doesn't hang forever.
+  */
+  private cancelExternalRequest = () => {
+    const pending = this.pendingExternalRequest;
+    this.pendingExternalRequest = undefined;
+
+    if (pending) {
+      this.sendRpcResponseToActiveTab(pending.id, undefined, 'User rejected the request.', pending.tabId);
+    }
   };
 
   /*
@@ -139,7 +186,7 @@ export default class RPCController extends IController {
   * @param id Request ID.
   * @param args Request arguments. [url, message, usePrefix?, sigOptions?]
   */
-    private externalSignMessage = async (id: string, args: any[]) => {
+    private externalSignMessage = async (id: string, args: any[], tabId?: number) => {
       if (!this.rpcProvider()) {
         throw Error('Cannot call RPC without provider.');
       }
@@ -181,7 +228,7 @@ export default class RPCController extends IController {
       } catch(err: any) {
         error = err;
       }
-      this.sendRpcResponseToActiveTab(id, result, error);
+      this.sendRpcResponseToActiveTab(id, result, error, tabId);
   };
 
 
@@ -240,15 +287,13 @@ export default class RPCController extends IController {
   * @param id Request ID.
   * @param args Request arguments. [contractAddress, data, amount?, gasLimit?, gasPrice?]
   */
-  private externalSendToContract = async (id: string, args: any[]) => {
+  private externalSendToContract = async (id: string, args: any[], tabId?: number) => {
     if (!this.rpcProvider()) {
       throw Error('Cannot call RPC without provider.');
     }
 
-
-
     const { result, error } = await this.sendToContract(id, args);
-    this.sendRpcResponseToActiveTab(id, result, error);
+    this.sendRpcResponseToActiveTab(id, result, error, tabId);
   };
 
   /*
@@ -265,17 +310,43 @@ export default class RPCController extends IController {
     this.sendRpcResponseToActiveTab(id, result, error);
   };
 
-  private handleMessage = (request: any, _: chrome.runtime.MessageSender) => {
+  private handleMessage = (
+    request: any,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: any) => void
+  ) => {
     try {
       switch (request.type) {
         case MESSAGE_TYPE.EXTERNAL_RAW_CALL:
           this.externalRawCall(request.id, request.method, request.args);
           break;
-        case MESSAGE_TYPE.EXTERNAL_SEND_TO_CONTRACT:
-          this.externalSendToContract(request.id, request.args);
+        case MESSAGE_TYPE.EXTERNAL_CONFIRM_SEND_TO_CONTRACT:
+          this.confirmExternalRequest(
+            'sendToContract', request.id, request.args, request.account, sender.tab && sender.tab.id
+          );
           break;
-        case MESSAGE_TYPE.EXTERNAL_SIGN_MESSAGE:
-          this.externalSignMessage(request.id, request.args);
+        case MESSAGE_TYPE.EXTERNAL_CONFIRM_SIGN_MESSAGE:
+          this.confirmExternalRequest(
+            'signMessage', request.id, request.args, request.account, sender.tab && sender.tab.id
+          );
+          break;
+        case MESSAGE_TYPE.GET_PENDING_EXTERNAL_REQUEST:
+          sendResponse(this.pendingExternalRequest);
+          break;
+        case MESSAGE_TYPE.EXTERNAL_SEND_TO_CONTRACT: {
+          const tabId = this.pendingExternalRequest && this.pendingExternalRequest.tabId;
+          this.pendingExternalRequest = undefined;
+          this.externalSendToContract(request.id, request.args, tabId);
+          break;
+        }
+        case MESSAGE_TYPE.EXTERNAL_SIGN_MESSAGE: {
+          const tabId = this.pendingExternalRequest && this.pendingExternalRequest.tabId;
+          this.pendingExternalRequest = undefined;
+          this.externalSignMessage(request.id, request.args, tabId);
+          break;
+        }
+        case MESSAGE_TYPE.METRIMASK_WINDOW_CLOSE:
+          this.cancelExternalRequest();
           break;
         case MESSAGE_TYPE.EXTERNAL_VERIFY_MESSAGE:
           this.externalVerifyMessage(request.id, request.args);

@@ -25,6 +25,10 @@ export default class MainContainerStore {
         routerStore.push('/login');
         break;
 
+      case MESSAGE_TYPE.EXTERNAL_CONFIRMATION_PENDING:
+        routerStore.push('/confirm-external-request');
+        break;
+
       case MESSAGE_TYPE.ACCOUNT_LOGIN_SUCCESS:
         routerStore.push('/home');
         break;

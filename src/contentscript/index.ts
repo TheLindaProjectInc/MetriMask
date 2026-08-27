@@ -82,13 +82,12 @@ const handleRPCRequest = (message: IRPCCallRequest) => {
 
     switch (method) {
       case RPC_METHOD.SEND_TO_CONTRACT:
-        // Inpage shows sign tx popup
-        postWindowMessage<IRPCCallRequest>(TARGET_NAME.INPAGE, {
-          type: API_TYPE.RPC_SEND_TO_CONTRACT,
-          payload: {
-            ...message,
-            account,
-          },
+        // Background stores the pending request and opens the side panel to confirm it
+        chrome.runtime.sendMessage({
+          type: MESSAGE_TYPE.EXTERNAL_CONFIRM_SEND_TO_CONTRACT,
+          id,
+          args,
+          account,
         });
         break;
       case RPC_METHOD.CALL_CONTRACT:
@@ -118,13 +117,12 @@ const handleRPCSignMessageRequest = (message: IRPCSignMessageRequest) => {
       return;
     }
 
-    // Inpage shows sign tx popup
-    postWindowMessage<IRPCSignMessageRequest>(TARGET_NAME.INPAGE, {
-      type: API_TYPE.RPC_SIGN_MESSAGE,
-      payload: {
-        ...message,
-        account,
-      },
+    // Background stores the pending request and opens the side panel to confirm it
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPE.EXTERNAL_CONFIRM_SIGN_MESSAGE,
+      id,
+      args: message.args,
+      account,
     });
   });
 };

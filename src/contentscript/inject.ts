@@ -1,6 +1,3 @@
-import { API_TYPE, TARGET_NAME } from '../constants';
-import { postWindowMessage } from '../utils/messenger';
-
 const injectScript = (src: string) => {
   return new Promise<void>((resolve) => {
     const scriptElement = document.createElement('script');
@@ -33,20 +30,6 @@ export const injectAllScripts = async () => {
     await injectScript(chrome.runtime.getURL('commons.contentscript-inpage.js'));
     await injectScript(chrome.runtime.getURL('commons.popup-inpage.js'));
     await injectScript(chrome.runtime.getURL('inpage.js'));
-
-    // Pass the Chrome extension absolute URL of the Sign Transaction dialog to the Inpage
-    const signTxUrl = chrome.runtime.getURL('sign-tx.html');
-    postWindowMessage(TARGET_NAME.INPAGE, {
-      type: API_TYPE.SIGN_TX_URL_RESOLVED,
-      payload: { url: signTxUrl },
-    });
-
-    // Pass the Chrome extension absolute URL of the Sign Message dialog to the Inpage
-    const signMessageUrl = chrome.runtime.getURL('sign-message.html');
-    postWindowMessage(TARGET_NAME.INPAGE, {
-      type: API_TYPE.SIGN_MESSAGE_URL_RESOLVED,
-      payload: { url: signMessageUrl },
-    });
   });
 
   injectStylesheet(chrome.runtime.getURL('css/modal.css'));

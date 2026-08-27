@@ -50,14 +50,12 @@ export interface ICurrentAccount {
   address: string;
 }
 
-export interface ISignExternalTxRequest {
-  url: string;
-  request: IRPCCallRequest;
-}
-
-export interface ISignMessageRequest {
-  url: string;
-  request: IRPCCallRequest;
+export interface IPendingExternalRequest {
+  kind: 'sendToContract' | 'signMessage';
+  id: string;
+  args: any[];
+  account: ICurrentAccount;
+  tabId: number;
 }
 
 export interface ISigner {

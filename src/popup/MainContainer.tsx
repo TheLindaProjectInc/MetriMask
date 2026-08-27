@@ -26,6 +26,7 @@ import Receive from './pages/Receive';
 import SendConfirm from './pages/SendConfirm';
 import AddToken from './pages/AddToken';
 import AddMrc721Token from './pages/AddMRC721Token';
+import ConfirmExternalRequest from './pages/ConfirmExternalRequest';
 import AppStore, { store } from './stores/AppStore';
 import { MESSAGE_TYPE } from '../constants';
 
@@ -68,6 +69,7 @@ export default class MainContainer extends Component<IProps, {}> {
             <Route path="/receive" element={<Receive store={store}/>} />
             <Route path="/add-token" element={<AddToken store={store}/>} />
             <Route path="/add-mrc721-token" element={<AddMrc721Token store={store}/>} />
+            <Route path="/confirm-external-request" element={<ConfirmExternalRequest store={store}/>} />
           </Routes>
         </HistoryRouter>
         <UnexpectedErrorDialog />

@@ -10,6 +10,12 @@ import Transaction from '../../models/Transaction';
 export default class TransactionController extends IController {
   private static GET_TX_INTERVAL_MS = 60000;
 
+  // A freshly-broadcast transaction typically isn't indexed by the API immediately -- refreshing
+  // right away would often just miss it. This gives the indexer a moment to catch up before the
+  // one-off post-send refresh, independent of (and much less frequent than) the normal poll above,
+  // to stay considerate of upstream rate limiting.
+  private static POST_SEND_REFRESH_DELAY_MS = 10000;
+
   public transactions: Transaction[] = [];
   public pageNum = 0;
   public pagesTotal?: number;
@@ -18,6 +24,7 @@ export default class TransactionController extends IController {
   }
 
   private getTransactionsInterval?: number = undefined;
+  private postSendRefreshTimer?: ReturnType<typeof setTimeout>;
 
   constructor(main: MetriMaskController) {
     super('transaction', main);
@@ -55,10 +62,24 @@ export default class TransactionController extends IController {
     }
   };
 
+  /*
+  * Schedules a single refresh shortly after a transaction is broadcast, so a newly-sent
+  * transaction shows up in the list without waiting for the next normal poll tick.
+  */
+  public refreshAfterSend = () => {
+    if (this.postSendRefreshTimer) {
+      clearTimeout(this.postSendRefreshTimer);
+    }
+    this.postSendRefreshTimer = setTimeout(() => {
+      this.postSendRefreshTimer = undefined;
+      this.refreshTransactions();
+    }, TransactionController.POST_SEND_REFRESH_DELAY_MS);
+  };
+
   // TODO: if a new transaction comes in, the transactions on a page will shift(ie if 1 page has 10 transactions,
   // transaction number 10 shifts to page2), and the bottom most transaction would disappear from the list.
   // Need to add some additional logic to keep the bottom most transaction displaying.
-  private refreshTransactions = async () => {
+  public refreshTransactions = async () => {
     let refreshedItems: Transaction[] = [];
     for (let i = 0; i <= this.pageNum; i++) {
       refreshedItems = refreshedItems.concat(await this.fetchTransactions(i));

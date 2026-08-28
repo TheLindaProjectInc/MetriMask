@@ -10,6 +10,7 @@ import {
    DialogContentText,
    DialogActions
   } from '@material-ui/core';
+import { CheckCircle, ErrorOutline } from '@material-ui/icons';
 
 import Loading from './components/Loading';
 import Login from './pages/Login';
@@ -73,6 +74,7 @@ export default class MainContainer extends Component<IProps, {}> {
           </Routes>
         </HistoryRouter>
         <UnexpectedErrorDialog />
+        <TransactionStatusDialog />
       </div>
     );
   }
@@ -93,3 +95,29 @@ const UnexpectedErrorDialog: React.FC<any> = inject('store')(observer(({ store: 
     </DialogActions>
   </Dialog>
 )));
+
+const TransactionStatusDialog: React.FC<any> = inject('store')(observer(({ store: { mainContainerStore } }) => {
+  const status = mainContainerStore.transactionStatus;
+  const close = () => mainContainerStore.transactionStatus = undefined;
+
+  return (
+    <Dialog disableBackdropClick open={!!status} onClose={close}>
+      <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {status && status.success
+          ? <CheckCircle style={{ color: '#2e7d32' }} />
+          : <ErrorOutline style={{ color: '#d32f2f' }} />}
+        {status && status.success ? 'Transaction Submitted' : 'Transaction Failed'}
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          {status && status.success
+            ? 'Your transaction was successfully broadcast to the network.'
+            : (status && status.message) || 'The transaction could not be broadcast to the network.'}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={close} color="primary">Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}));

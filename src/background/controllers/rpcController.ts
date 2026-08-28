@@ -59,10 +59,13 @@ export default class RPCController extends IController {
       result = await this.main.account.loggedInAccount!.wallet!.sendTransaction(
         newArgs, resolvedFeeRate
       ) as Insight.ISendRawTxResult;
+      this.main.transaction.refreshAfterSend();
     } catch (err: any) {
       error = err.message;
       console.error(error);
     }
+
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.TRANSACTION_STATUS, success: !error, message: error });
 
     return { id, result, error };
   };

@@ -45,6 +45,21 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
       color: theme.palette.secondary.main,
     },
   },
+  rightButtonsContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeToggleIconButton: {
+    width: theme.icon.size,
+    height: theme.icon.size,
+  },
+  themeToggleButton: {
+    fontSize: 18,
+    '&.white': {
+      color: theme.palette.secondary.main,
+    },
+  },
 });
 
 export default styles;

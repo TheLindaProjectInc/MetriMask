@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import React, { Component, FC } from 'react';
-import { Paper, Tabs, Tab, List, ListItem, Typography, Button, withStyles, WithStyles } from '@material-ui/core';
-import { KeyboardArrowRight } from '@material-ui/icons';
+import {
+  Paper, Tabs, Tab, List, ListItem, Typography, Button, IconButton, CircularProgress, withStyles, WithStyles,
+} from '@material-ui/core';
+import { KeyboardArrowRight, Refresh } from '@material-ui/icons';
 import RemoveIcon from '@material-ui/icons/Remove';
 import AddIcon from '@material-ui/icons/Add';
 import { inject, observer } from 'mobx-react';
@@ -84,6 +86,17 @@ class AccountDetail extends Component<WithStyles & IProps, {}> {
 
 const TransactionList: FC<any> = observer(({ classes, store: { accountDetailStore } }: any) => (
   <div>
+    <div className={classes.refreshRow}>
+      <IconButton
+        className={classes.refreshIconButton}
+        disabled={accountDetailStore.refreshingTransactions}
+        onClick={accountDetailStore.refreshTransactions}
+      >
+        {accountDetailStore.refreshingTransactions
+          ? <CircularProgress size={18} className={classes.refreshSpinner} />
+          : <Refresh className={classes.refreshIcon} />}
+      </IconButton>
+    </div>
     {accountDetailStore.transactions.map(({
       id, pending, confirmations, timestamp, amount, direction }: Transaction) => (
       <ListItem divider key={id} className={

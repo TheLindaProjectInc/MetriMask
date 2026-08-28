@@ -26,6 +26,24 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     overflowX: 'hidden',
     overflowY: 'auto',
   },
+  refreshRow: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: `${theme.padding.xs} ${theme.padding.sm} 0`,
+  },
+  refreshIconButton: {
+    width: theme.icon.size,
+    height: theme.icon.size,
+  },
+  refreshIcon: {
+    fontSize: theme.font.lg,
+    color: theme.palette.primary.main,
+  },
+  refreshSpinner: {
+    color: theme.palette.primary.main,
+  },
   listItem: {
     width: '100%',
     cursor: 'pointer',

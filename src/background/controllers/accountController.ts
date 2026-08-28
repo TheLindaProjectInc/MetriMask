@@ -11,6 +11,9 @@ import Account from '../../models/Account';
 import Wallet from '../../models/Wallet';
 import { IScryptParams } from 'metrixjs-wallet/lib/scrypt';
 import { selectTxs } from 'metrixjs-wallet/lib/tx';
+import { withTimeout } from '../../utils';
+
+const FEE_ESTIMATE_TIMEOUT_MS = 5000;
 
 const INIT_VALUES = {
   mainnetAccounts: [],
@@ -445,9 +448,12 @@ export default class AccountController extends IController {
 
       await this.loggedInAccount.wallet.send(receiverAddress, amount, {feeRate: resolvedFeeRate});
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_SUCCESS });
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.TRANSACTION_STATUS, success: true });
+      this.main.transaction.refreshAfterSend();
     } catch (err: any) {
       console.error(err);
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_FAILURE, error: err });
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.TRANSACTION_STATUS, success: false, message: err.message });
     }
   };
 
@@ -487,7 +493,9 @@ export default class AccountController extends IController {
     }
 
     try {
-      const utxos = await this.loggedInAccount.wallet.mjsWallet.getBitcoinjsUTXOs();
+      const utxos = await withTimeout(
+        this.loggedInAccount.wallet.mjsWallet.getBitcoinjsUTXOs(), FEE_ESTIMATE_TIMEOUT_MS
+      );
       const { feeTotal } = selectTxs(utxos, amount, feeRate);
       return feeTotal;
     } catch (err) {
@@ -496,11 +504,24 @@ export default class AccountController extends IController {
     }
   };
 
-  private handleMessage = async (
+  /*
+  * Not an async function -- returning a literal `true` (not a Promise, which is always truthy
+  * but is NOT `=== true`) is required for chrome.runtime.onMessage to keep the port open for an
+  * asynchronous sendResponse. Every controller's listener fires for every dispatched message
+  * regardless of which type it actually handles, so an async listener here doesn't just break
+  * this controller's own async responses -- it can disrupt response delivery for messages meant
+  * for other controllers too, since Chrome always sees an (always-truthy) Promise back from it.
+  */
+  private handleMessage = (
     request: any,
     _: chrome.runtime.MessageSender,
     sendResponse: (response: any) => void,
-  ) => {
+  ): boolean => {
+    const reportError = (err: any) => {
+      console.error(err);
+      this.main.displayErrorOnPopup(err);
+    };
+
     try {
       switch (request.type) {
         case MESSAGE_TYPE.LOGIN:
@@ -510,10 +531,10 @@ export default class AccountController extends IController {
           this.confirmLogin(request.password);
           break;
         case MESSAGE_TYPE.IMPORT_MNEMONIC:
-          await this.importMnemonic(request.accountName, request.mnemonicPrivateKey);
+          this.importMnemonic(request.accountName, request.mnemonicPrivateKey).catch(reportError);
           break;
         case MESSAGE_TYPE.IMPORT_PRIVATE_KEY:
-          await this.importPrivateKey(request.accountName, request.mnemonicPrivateKey);
+          this.importPrivateKey(request.accountName, request.mnemonicPrivateKey).catch(reportError);
           break;
         case MESSAGE_TYPE.SAVE_TO_FILE:
           this.saveToFile(request.accountName, request.mnemonicPrivateKey);
@@ -522,7 +543,7 @@ export default class AccountController extends IController {
           this.saveToFile(request.accountName, request.key);
           break;
         case MESSAGE_TYPE.ACCOUNT_LOGIN:
-          await this.loginAccount(request.selectedWalletName);
+          this.loginAccount(request.selectedWalletName).catch(reportError);
           break;
         case MESSAGE_TYPE.SEND_TOKENS:
           this.sendTokens(request.receiverAddress, request.amount, request.feeRate);
@@ -562,14 +583,14 @@ export default class AccountController extends IController {
           this.updateAndSendMaxMetrixAmountToPopup();
           break;
         case MESSAGE_TYPE.ESTIMATE_TRANSACTION_FEE:
-          sendResponse(await this.estimateTransactionFee(request.amount, request.feeRate));
-          break;
+          this.estimateTransactionFee(request.amount, request.feeRate).then(sendResponse);
+          return true;
         default:
           break;
       }
     } catch (err: any) {
-      console.error(err);
-      this.main.displayErrorOnPopup(err);
+      reportError(err);
     }
+    return false;
   };
 }

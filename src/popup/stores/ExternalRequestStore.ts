@@ -84,10 +84,18 @@ export default class ExternalRequestStore {
     this.app = app;
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_FEE_RATE_TIERS }, (tiers: any) => {
+      if (chrome.runtime.lastError) {
+        console.error('GET_FEE_RATE_TIERS failed:', chrome.runtime.lastError.message);
+        return;
+      }
       this.feeRateTiers = tiers;
       this.scheduleNetworkFeeEstimate();
     });
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MRX_USD_RATE }, (rate: number) => {
+      if (chrome.runtime.lastError) {
+        console.error('GET_MRX_USD_RATE failed:', chrome.runtime.lastError.message);
+        return;
+      }
       this.mrxUsdRate = rate;
     });
 
@@ -195,7 +203,13 @@ export default class ExternalRequestStore {
 
     chrome.runtime.sendMessage(
       { type: MESSAGE_TYPE.ESTIMATE_TRANSACTION_FEE, amount: amountSatoshi, feeRate },
-      (fee: number) => { this.networkFee = fee; }
+      (fee: number) => {
+        if (chrome.runtime.lastError) {
+          console.error('ESTIMATE_TRANSACTION_FEE failed:', chrome.runtime.lastError.message);
+          return;
+        }
+        this.networkFee = fee;
+      }
     );
   };
 

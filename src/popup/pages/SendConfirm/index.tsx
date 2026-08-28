@@ -7,7 +7,6 @@ import cx from 'classnames';
 import styles from './styles';
 import { SEND_STATE } from '../../../constants';
 import NavBar from '../../components/NavBar';
-import NetworkFeeControl from '../../components/NetworkFeeControl';
 import AppStore from '../../stores/AppStore';
 
 interface IProps {
@@ -42,16 +41,8 @@ class SendConfirm extends Component<WithStyles & IProps, {}> {
                 <CostField fieldName={'Max Transaction Fee'} amount={maxTxFee} unit={'MRX'} {...this.props} />
               </div>
             )}
-            <NetworkFeeControl
-              feeSpeed={sendStore.feeSpeed}
-              isCustomFee={sendStore.isCustomFee}
-              customFeeRate={sendStore.customFeeRate}
-              feeRateTiers={sendStore.feeRateTiers}
-              networkFeeLabel={sendStore.networkFeeLabel}
-              networkFeeUsdLabel={sendStore.networkFeeUsdLabel}
-              onSelectTier={sendStore.selectFeeTier}
-              onApplyCustomFee={sendStore.applyCustomFeeRate}
-            />
+            <NetworkFeeField {...this.props} />
+            <TotalField {...this.props} />
           </div>
           {errorMessage && <Typography className={classes.errorMessage}>{errorMessage}</Typography>}
           <Button
@@ -76,6 +67,36 @@ const AddressField = ({ classes, fieldName, address }: any) => (
     <Typography className={classes.addressValue}>{address}</Typography>
   </div>
 );
+
+const NetworkFeeField = observer(({ classes, store: { sendStore } }: any) => {
+  const { feeSpeed, isCustomFee, customFeeRate, networkFeeLabel, networkFeeUsdLabel } = sendStore;
+  const feeSpeedStr = String(feeSpeed);
+  const speedLabel = isCustomFee
+    ? `Custom, ${customFeeRate} sat/byte`
+    : feeSpeedStr.charAt(0).toUpperCase() + feeSpeedStr.slice(1);
+  const amount = networkFeeLabel
+    ? `${networkFeeLabel}${networkFeeUsdLabel ? ` (${networkFeeUsdLabel})` : ''}`
+    : 'Calculating...';
+
+  return <CostField fieldName={`Network Fee (${speedLabel})`} amount={amount} unit={''} classes={classes} />;
+});
+
+const TotalField = observer(({ classes, store: { sendStore } }: any) => {
+  const { token, amount, maxTxFee, networkFee, mrxUsdRate } = sendStore;
+  const isMrx = !!token && token.symbol === 'MRX';
+
+  if (networkFee === undefined) {
+    return <CostField fieldName={'Total (MRX)'} amount={'Calculating...'} unit={''} classes={classes} />;
+  }
+
+  const networkFeeMrx = Number(networkFee) * 1e-8;
+  const totalMrx = isMrx ? Number(amount || 0) + networkFeeMrx : Number(maxTxFee || 0) + networkFeeMrx;
+  const totalUsd = mrxUsdRate ? ` ($${(totalMrx * mrxUsdRate).toFixed(2)})` : '';
+  const fieldName = isMrx ? 'Total (Amount + Fee)' : 'Total MRX Cost (Gas + Fee)';
+  const totalLabel = `${totalMrx.toFixed(8)} MRX${totalUsd}`;
+
+  return <CostField fieldName={fieldName} amount={totalLabel} unit={''} classes={classes} />;
+});
 
 const CostField = ({ classes, fieldName, amount, unit }: any) => (
   <div className={cx(classes.fieldContainer, 'row', 'marginBig')}>

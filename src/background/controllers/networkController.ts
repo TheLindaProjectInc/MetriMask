@@ -5,6 +5,9 @@ import MetriMaskController from '.';
 import IController from './iController';
 import { MESSAGE_TYPE, STORAGE, NETWORK_NAMES } from '../../constants';
 import QryNetwork from '../../models/QryNetwork';
+import { withTimeout } from '../../utils';
+
+const FEE_ESTIMATE_TIMEOUT_MS = 5000;
 
 const DEFAULT_NETWORK_URLS: Record<string, string> = {
   [NETWORK_NAMES.MAINNET]: 'https://explorer.metrixcoin.com/',
@@ -155,7 +158,9 @@ export default class NetworkController extends IController {
 
     try {
       const networkInfo = NetworkController.NETWORKS[this.networkIndex].network.info;
-      const estimated = await Insight.forNetwork(networkInfo).estimateFeePerByte();
+      const estimated = await withTimeout(
+        Insight.forNetwork(networkInfo).estimateFeePerByte(), FEE_ESTIMATE_TIMEOUT_MS
+      );
       if (estimated && estimated > 0) {
         baseRate = estimated;
       }

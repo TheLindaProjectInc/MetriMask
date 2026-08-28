@@ -1,10 +1,5 @@
 import React, { Component } from 'react';
-import {
-  Typography, IconButton, TextField, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  withStyles, WithStyles,
-} from '@material-ui/core';
-import { Edit } from '@material-ui/icons';
+import { Typography, TextField, withStyles, WithStyles } from '@material-ui/core';
 import cx from 'classnames';
 
 import styles from './styles';
@@ -31,91 +26,86 @@ interface IProps {
 }
 
 interface IState {
-  modalOpen: boolean;
   customDraft: string;
 }
 
 class NetworkFeeControl extends Component<WithStyles & IProps, IState> {
-  public state: IState = { modalOpen: false, customDraft: '' };
+  public state: IState = {
+    customDraft: this.props.isCustomFee && this.props.customFeeRate ? String(this.props.customFeeRate) : '',
+  };
 
   public render() {
-    const { classes, feeSpeed, isCustomFee, customFeeRate, feeRateTiers, networkFeeLabel, networkFeeUsdLabel } =
-      this.props;
-    const { modalOpen, customDraft } = this.state;
-    const isValidCustom = Number(customDraft) > 0 && Number.isFinite(Number(customDraft));
+    const { classes, feeSpeed, isCustomFee, feeRateTiers, networkFeeLabel, networkFeeUsdLabel } = this.props;
+    const { customDraft } = this.state;
+    const sliderIndex = SPEEDS.indexOf(feeSpeed);
 
     return (
       <div className={classes.root}>
-        <div className={classes.summaryRow} onClick={this.openModal}>
+        <div className={classes.headingRow}>
           <Typography className={classes.heading}>
             Network Fee
             <InfoTooltip text={NETWORK_FEE_INFO} />
           </Typography>
-          <div className={classes.summaryValues}>
+          <div className={classes.amounts}>
             {networkFeeLabel && <Typography className={classes.feeAmount}>{networkFeeLabel}</Typography>}
             {networkFeeUsdLabel && <Typography className={classes.feeUsd}>{networkFeeUsdLabel}</Typography>}
           </div>
-          <IconButton className={classes.editButton} size="small" onClick={this.openModal}>
-            <Edit className={classes.editIcon} />
-          </IconButton>
         </div>
 
-        <Dialog open={modalOpen} onClose={this.closeModal}>
-          <DialogTitle>Edit Network Fee</DialogTitle>
-          <DialogContent>
-            {SPEEDS.map((speed) => (
-              <div
-                key={speed}
-                className={cx(classes.tierRow, !isCustomFee && feeSpeed === speed && classes.tierRowActive)}
-                onClick={() => this.selectTier(speed)}
-              >
-                <Typography className={classes.tierLabel}>{SPEED_LABELS[speed]}</Typography>
-                {feeRateTiers && (
-                  <Typography className={classes.tierRate}>{feeRateTiers[speed]} satoshi/byte</Typography>
-                )}
-              </div>
-            ))}
-            <div className={cx(classes.tierRow, classes.advancedRow, isCustomFee && classes.tierRowActive)}>
-              <Typography className={classes.tierLabel}>Advanced</Typography>
-              <TextField
-                className={classes.customInput}
-                type="number"
-                placeholder={customFeeRate ? String(customFeeRate) : 'satoshi/byte'}
-                value={customDraft}
-                InputProps={{ className: classes.customInputText, disableUnderline: true }}
-                onChange={(event) => this.setState({ customDraft: event.target.value })}
-              />
+        <input
+          className={cx(classes.slider, isCustomFee && classes.sliderDisabled)}
+          type="range"
+          min={0}
+          max={2}
+          step={1}
+          disabled={isCustomFee}
+          value={sliderIndex === -1 ? 1 : sliderIndex}
+          onChange={(event) => this.selectTier(SPEEDS[Number(event.target.value)])}
+        />
+        <div className={classes.marksRow}>
+          {SPEEDS.map((speed) => (
+            <div key={speed} className={classes.markColumn}>
+              <Typography className={!isCustomFee && feeSpeed === speed ? classes.markActive : classes.mark}>
+                {SPEED_LABELS[speed]}
+              </Typography>
+              {feeRateTiers && (
+                <Typography className={classes.markRate}>{feeRateTiers[speed]} sat/byte</Typography>
+              )}
             </div>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={this.closeModal}>Cancel</Button>
-            <Button color="primary" disabled={!isValidCustom} onClick={this.applyCustom}>
-              Apply Custom
-            </Button>
-          </DialogActions>
-        </Dialog>
+          ))}
+        </div>
+
+        <div className={classes.customRow}>
+          <Typography className={classes.customLabel}>Custom rate</Typography>
+          <TextField
+            className={classes.customInput}
+            type="number"
+            placeholder="satoshi/byte"
+            value={customDraft}
+            InputProps={{ className: classes.customInputText, disableUnderline: true }}
+            onChange={(event) => this.handleCustomChange(event.target.value)}
+          />
+        </div>
       </div>
     );
   }
 
-  private openModal = () => {
-    this.setState({ modalOpen: true, customDraft: '' });
-  };
-
-  private closeModal = () => {
-    this.setState({ modalOpen: false });
-  };
-
   private selectTier = (speed: FeeSpeed) => {
+    this.setState({ customDraft: '' });
     this.props.onSelectTier(speed);
-    this.closeModal();
   };
 
-  private applyCustom = () => {
-    const rate = Math.round(Number(this.state.customDraft));
+  private handleCustomChange = (value: string) => {
+    this.setState({ customDraft: value });
+
+    if (value.trim() === '') {
+      this.props.onSelectTier(this.props.feeSpeed);
+      return;
+    }
+
+    const rate = Math.round(Number(value));
     if (rate > 0) {
       this.props.onApplyCustomFee(rate);
-      this.closeModal();
     }
   };
 }

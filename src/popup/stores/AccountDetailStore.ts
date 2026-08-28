@@ -14,6 +14,7 @@ const INIT_VALUES = {
   hasMore: false,
   shouldScrollToBottom: false,
   editTokenMode: false,
+  refreshingTransactions: false,
 };
 
 export default class AccountDetailStore {
@@ -24,6 +25,7 @@ export default class AccountDetailStore {
   @observable public hasMore: boolean = INIT_VALUES.hasMore;
   @observable public shouldScrollToBottom: boolean = INIT_VALUES.shouldScrollToBottom;
   @observable public editTokenMode: boolean = INIT_VALUES.editTokenMode;
+  @observable public refreshingTransactions: boolean = INIT_VALUES.refreshingTransactions;
 
   private app: AppStore;
 
@@ -62,6 +64,12 @@ export default class AccountDetailStore {
 
   public fetchMoreTxs = () => {
     chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MORE_TXS });
+  };
+
+  @action
+  public refreshTransactions = () => {
+    this.refreshingTransactions = true;
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.START_TX_POLLING });
   };
 
   public onTransactionClick = (txid: string) => {
@@ -128,6 +136,7 @@ export default class AccountDetailStore {
       case MESSAGE_TYPE.GET_TXS_RETURN:
         this.transactions = request.transactions;
         this.hasMore = request.hasMore;
+        this.refreshingTransactions = false;
         break;
       case MESSAGE_TYPE.MRC_TOKENS_RETURN:
         this.tokens = request.tokens;

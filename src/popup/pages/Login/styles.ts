@@ -5,6 +5,12 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
+  },
+  contentContainer: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
     margin: theme.padding.md,
   },
   fieldContainer: {

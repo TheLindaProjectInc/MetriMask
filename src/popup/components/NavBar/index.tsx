@@ -3,7 +3,7 @@ import React, { Fragment } from 'react';
 import { inject, observer } from 'mobx-react';
 
 import { Typography, Menu, MenuItem, IconButton, withStyles } from '@material-ui/core';
-import { ArrowBack, Settings } from '@material-ui/icons';
+import { ArrowBack, Settings, Brightness4, Brightness7 } from '@material-ui/icons';
 import cx from 'classnames';
 
 import DropDownMenu from '../DropDownMenu';
@@ -41,16 +41,31 @@ const NavBar: React.FC<IProps> = inject('store')(observer((props: IProps) => {
       <div className={classes.locationContainer}>
         <Typography className={cx(classes.locationText, isDarkTheme ? 'white' : '')}>{title}</Typography>
       </div>
-      {hasNetworkSelector && (
-        <DropDownMenu
-        onSelect={navBarStore.changeNetwork}
-        selections={sessionStore.networks.map((net: QryNetwork) => net.name)}
-        selectedIndex={sessionStore.networkIndex}
-        />
-      )}
+      <div className={classes.rightButtonsContainer}>
+        {hasNetworkSelector && (
+          <DropDownMenu
+          onSelect={navBarStore.changeNetwork}
+          selections={sessionStore.networks.map((net: QryNetwork) => net.name)}
+          selectedIndex={sessionStore.networkIndex}
+          />
+        )}
+        <ThemeToggleButton {...props} />
+      </div>
     </div>
   );
 }));
+
+const ThemeToggleButton: React.FC<IProps> =
+  observer(({ classes, isDarkTheme, store: { settingsStore } }: any) => (
+  <IconButton
+    className={classes.themeToggleIconButton}
+    onClick={() => settingsStore.changeDarkMode(!settingsStore.darkMode)}
+  >
+    {settingsStore.darkMode
+      ? <Brightness7 className={cx(classes.themeToggleButton, isDarkTheme ? 'white' : '')} />
+      : <Brightness4 className={cx(classes.themeToggleButton, isDarkTheme ? 'white' : '')} />}
+  </IconButton>
+));
 
 const BackButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { routerStore } }: any) => (
   <IconButton onClick={() => routerStore.go(-1)} className={classes.backIconButton}>

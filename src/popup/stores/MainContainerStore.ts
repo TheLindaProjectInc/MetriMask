@@ -5,6 +5,7 @@ import { MESSAGE_TYPE } from '../../constants';
 
 export default class MainContainerStore {
   @observable public unexpectedError?: string = undefined;
+  @observable public transactionStatus?: { success: boolean; message?: string } = undefined;
 
   private app: AppStore;
 
@@ -23,6 +24,10 @@ export default class MainContainerStore {
     switch (request.type) {
       case MESSAGE_TYPE.ROUTE_LOGIN:
         routerStore.push('/login');
+        break;
+
+      case MESSAGE_TYPE.EXTERNAL_CONFIRMATION_PENDING:
+        routerStore.push('/confirm-external-request');
         break;
 
       case MESSAGE_TYPE.ACCOUNT_LOGIN_SUCCESS:
@@ -63,6 +68,10 @@ export default class MainContainerStore {
           routerStore.go(-1);
         }
         this.unexpectedError = request.error;
+        break;
+
+      case MESSAGE_TYPE.TRANSACTION_STATUS:
+        this.transactionStatus = { success: request.success, message: request.message };
         break;
 
       default:

@@ -9,9 +9,13 @@ import { map } from 'lodash';
 
 import styles from './styles';
 import NavBar from '../../components/NavBar';
+import NetworkFeeControl from '../../components/NetworkFeeControl';
+import SliderInput from '../../components/SliderInput';
+import InfoTooltip from '../../components/InfoTooltip';
 import AppStore from '../../stores/AppStore';
 import { handleEnterPress } from '../../../utils';
 import MRCToken from '../../../models/MRCToken';
+import Config from '../../../config';
 
 interface IProps {
   classes: Record<string, string>;
@@ -43,11 +47,12 @@ class Send extends Component<WithStyles & IProps, {}> {
             <TokenField {...this.props} />
             <AmountField onEnterPress={this.onEnterPress} {...this.props} />
             {this.props.store.sendStore.token && this.props.store.sendStore.token.symbol === 'MRX' ? (
-                <TransactionSpeedField {...this.props} />
+                <FeeSpeedField {...this.props} />
             ) : (
               <div>
                 <GasLimitField onEnterPress={this.onEnterPress} {...this.props} />
                 <GasPriceField onEnterPress={this.onEnterPress} {...this.props} />
+                <FeeSpeedField {...this.props} />
               </div>
             )}
           </div>
@@ -66,8 +71,11 @@ class Send extends Component<WithStyles & IProps, {}> {
   };
 }
 
-const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any) => (
-  <Typography className={classes.fieldHeading}>{name}</Typography>
+const Heading = withStyles(styles, { withTheme: true })(({ classes, name, info }: any) => (
+  <Typography className={classes.fieldHeading}>
+    {name}
+    {info && <InfoTooltip text={info} />}
+  </Typography>
 ));
 
 const DetailField: React.FC<any> = ({ classes, label, value }: any) => (
@@ -193,31 +201,30 @@ const AmountField = observer(({ classes, store: { sendStore }, onEnterPress }: a
   </div>
 ));
 
-const TransactionSpeedField = observer(({ classes, store: { sendStore } }: any) => (
-  <div className={classes.fieldContainer}>
-    <Heading name="Transaction Speed" />
-    <div className={classes.fieldContentContainer}>
-      <Select
-        className={classes.selectOrTextField}
-        disableUnderline
-        value={sendStore.transactionSpeed}
-        onChange={(event) => sendStore.transactionSpeed = event.target.value}
-      >
-        {map(sendStore.transactionSpeeds, (transactionSpeed: string) => (
-          <MenuItem key={transactionSpeed} value={transactionSpeed}>
-            <Typography className={classes.fieldTextOrInput}>{transactionSpeed}</Typography>
-          </MenuItem>
-        ))}
-      </Select>
-    </div>
-  </div>
+const FeeSpeedField = observer(({ store: { sendStore } }: any) => (
+  <NetworkFeeControl
+    feeSpeed={sendStore.feeSpeed}
+    isCustomFee={sendStore.isCustomFee}
+    customFeeRate={sendStore.customFeeRate}
+    feeRateTiers={sendStore.feeRateTiers}
+    networkFeeLabel={sendStore.networkFeeLabel}
+    networkFeeUsdLabel={sendStore.networkFeeUsdLabel}
+    onSelectTier={sendStore.selectFeeTier}
+    onApplyCustomFee={sendStore.applyCustomFeeRate}
+  />
 ));
 
 const GasLimitField = observer(({ classes, store: { sendStore }, onEnterPress }: any) => (
   <div className={classes.fieldContainer}>
     <div className={classes.buttonFieldHeadingContainer}>
       <div className={classes.buttonFieldHeadingTextContainer}>
-        <Heading name="Gas Limit" />
+        <Heading
+          name="Gas Limit"
+          info={
+            'Maximum amount of gas this transaction may consume. Unused gas is refunded, ' +
+            'so a higher limit is safe to set — but too low can cause the transaction to fail.'
+          }
+        />
       </div>
       <Typography className={classes.fieldButtonText}>{sendStore.gasLimitRecommendedAmount}</Typography>
       <Button
@@ -252,6 +259,12 @@ const GasLimitField = observer(({ classes, store: { sendStore }, onEnterPress }:
         onKeyPress={onEnterPress}
       />
     </div>
+    <SliderInput
+      min={Config.TRANSACTION.GAS_LIMIT_MIN}
+      max={Config.TRANSACTION.GAS_LIMIT_MAX}
+      value={sendStore.gasLimit}
+      onChange={(value) => sendStore.gasLimit = value}
+    />
     {sendStore.gasLimitFieldError && (
       <Typography className={classes.errorText}>{sendStore.gasLimitFieldError}</Typography>
     )}
@@ -262,7 +275,14 @@ const GasPriceField = observer(({ classes, store: { sendStore }, onEnterPress }:
   <div className={classes.fieldContainer}>
     <div className={classes.buttonFieldHeadingContainer}>
       <div className={classes.buttonFieldHeadingTextContainer}>
-        <Heading name="Gas Price" />
+        <Heading
+          name="Gas Price"
+          info={
+            'Price paid per unit of gas, in satoshi. This is multiplied by the gas actually ' +
+            'used to determine your contract execution cost — higher values do not speed up ' +
+            'execution, they only raise the cost.'
+          }
+        />
       </div>
       <Typography className={classes.fieldButtonText}>{sendStore.gasPriceRecommendedAmount}</Typography>
       <Button
@@ -297,6 +317,12 @@ const GasPriceField = observer(({ classes, store: { sendStore }, onEnterPress }:
         onKeyPress={onEnterPress}
       />
     </div>
+    <SliderInput
+      min={Config.TRANSACTION.GAS_PRICE_MIN}
+      max={Config.TRANSACTION.GAS_PRICE_MAX}
+      value={sendStore.gasPrice}
+      onChange={(value) => sendStore.gasPrice = value}
+    />
     {sendStore.gasPriceFieldError && (
       <Typography className={classes.errorText}>{sendStore.gasPriceFieldError}</Typography>
     )}

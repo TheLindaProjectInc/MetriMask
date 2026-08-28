@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/TheLindaProjectInc/MetriMask/actions/workflows/npm-yarn.yml/badge.svg)](https://github.com/TheLindaProjectInc/MetriMask/actions/workflows/npm-yarn.yml)
+
 ## Get MetriMask
 Chome Web Store: https://chrome.google.com/webstore/detail/pgjlaaokfffcapdcakncnhpmigjlnpei
 
@@ -144,15 +146,43 @@ You can connect MetriMask to regtest. You will need to set the following in your
 }  
 ```
 
-## Running Dev Version
-### Chrome
-1. `yarn start` in the project folder to build the dev version and wait for it to be built
-2. Open Chrome and load URL: `chrome://extensions`
-3. Turn `Developer mode` on in the top right
-4. At the top, click `Load Unpacked Extension`
-5. Navigate to your `metrimask/dist` folder
-6. Click `Select`. The extension should now be loaded
-7. Click on the MetriMask logo in your Chrome extensions bar to open
+RegTest is hidden from the network switcher by default (it's only relevant to developers/testers). To use it, open MetriMask's Settings and turn on `Enable RegTest` first — it will then appear as a network option. By default RegTest points at `http://localhost:3001`; if your node's explorer runs elsewhere, this (and Mainnet/Testnet) can be overridden per-network from the same Settings page.
+
+## Building & Running Locally
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) 24 (current LTS) — required by `@zxing/library` (QR-code scanning)
+- [Yarn Classic (1.x)](https://classic.yarnpkg.com/) — this project uses a `yarn.lock` v1 lockfile, not Yarn Berry
+- A Chromium-based browser (Chrome, Edge, Brave, etc.)
+
+### Build commands
+The same commands work identically on **Windows, macOS, and Linux** — no WSL, Git Bash, or other Unix shell is required. Run these from the project root in whatever terminal you prefer (PowerShell, cmd.exe, Terminal, etc.):
+
+```
+yarn install --ignore-engines    # install dependencies (only needed once, or after pulling dependency changes)
+yarn build                       # production build -> dist/
+```
+
+`--ignore-engines` is required: this dependency set has no single Node version that satisfies every package's declared `engines` range (`@zxing/library` needs >=24, `eslint-plugin-jsdoc` caps out at 18) — both are advisory/inaccurate for how they're actually used here (zxing runs in the browser via webpack; jsdoc is a lint-time-only devDependency), not a sign anything is actually broken.
+
+or, for active development with auto-rebuild on file changes:
+
+```
+yarn start      # dev build with source maps, watches for changes -> dist/
+```
+
+Both write their output to the `dist/` folder. `yarn start` runs until you stop it (Ctrl+C).
+
+### Loading the extension in Chrome
+1. Run `yarn build` (or `yarn start` for a watched dev build) and wait for it to finish
+2. Open Chrome and go to `chrome://extensions`
+3. Turn on `Developer mode` (top right)
+4. Click `Load unpacked`
+5. Select the `dist` folder in this project
+6. The extension should now be loaded
+7. Click the MetriMask icon in the Chrome toolbar to open it — it opens as a **side panel** (not a popup), so it stays open while you interact with the page
+
+If you're actively developing with `yarn start`, Chrome doesn't pick up rebuilt files automatically — after each rebuild, go to `chrome://extensions` and click the reload icon on the MetriMask card (and refresh any open dApp tabs/side panel).
 
 ## Security Flow
 **First Time Flow**

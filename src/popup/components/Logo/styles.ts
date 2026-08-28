@@ -2,11 +2,11 @@ import { StyleRulesCallback, Theme } from '@material-ui/core';
 
 const styles: StyleRulesCallback = (theme: Theme) => ({
   logoContainer: {
-    flex: 1,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: theme.padding.lg,
   },
   logo: {
     width: 112,

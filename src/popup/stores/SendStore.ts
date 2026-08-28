@@ -1,14 +1,17 @@
-import { observable, computed, action } from 'mobx';
+import { observable, computed, action, reaction } from 'mobx';
 import { find } from 'lodash';
 
 import AppStore from './AppStore';
-import { SEND_STATE, MESSAGE_TYPE, TRANSACTION_SPEED } from '../../constants';
+import { SEND_STATE, MESSAGE_TYPE } from '../../constants';
 import { isValidAddress, isValidAmount, isValidGasLimit, isValidGasPrice } from '../../utils';
 import MRCToken from '../../models/MRCToken';
 import Config from '../../config';
+import { FeeSpeed } from '../components/NetworkFeeControl';
 import {
   decodeQrCodesFromDataUrl, parseAddressFromQrText, getTabDevicePixelRatio, injectQrOverlay,
 } from '../utils/qrOverlay';
+
+const NETWORK_FEE_ESTIMATE_DEBOUNCE_MS = 200;
 
 const INIT_VALUES = {
   tokens: [],
@@ -20,8 +23,12 @@ const INIT_VALUES = {
   maxMetrixSend: undefined,
   sendState: SEND_STATE.INITIAL,
   errorMessage: undefined,
-  transactionSpeed: TRANSACTION_SPEED.NORMAL,
-  transactionSpeeds: [TRANSACTION_SPEED.SLOW, TRANSACTION_SPEED.NORMAL, TRANSACTION_SPEED.FAST],
+  feeSpeed: 'normal' as FeeSpeed,
+  feeRateTiers: undefined,
+  networkFee: undefined,
+  isCustomFee: false,
+  customFeeRate: undefined,
+  mrxUsdRate: undefined,
   gasLimit: Config.TRANSACTION.DEFAULT_GAS_LIMIT,
   gasPrice: Config.TRANSACTION.DEFAULT_GAS_PRICE * 1e8, // MRX satoshi/gas
   gasLimitRecommendedAmount: Config.TRANSACTION.DEFAULT_GAS_LIMIT,
@@ -35,8 +42,12 @@ export default class SendStore {
   @observable public token?: MRCToken = INIT_VALUES.token;
   @observable public amount: number | string = INIT_VALUES.amount;
   @observable public maxMetrixSend?: number = INIT_VALUES.maxMetrixSend;
-  public transactionSpeeds: string[] = INIT_VALUES.transactionSpeeds;
-  @observable public transactionSpeed?: string = INIT_VALUES.transactionSpeed;
+  @observable public feeSpeed: FeeSpeed = INIT_VALUES.feeSpeed;
+  @observable public feeRateTiers?: { slow: number; normal: number; fast: number } = INIT_VALUES.feeRateTiers;
+  @observable public networkFee?: number = INIT_VALUES.networkFee; // satoshi
+  @observable public isCustomFee: boolean = INIT_VALUES.isCustomFee;
+  @observable public customFeeRate?: number = INIT_VALUES.customFeeRate; // satoshi/byte
+  @observable public mrxUsdRate?: number = INIT_VALUES.mrxUsdRate;
   @observable public gasLimit: number = INIT_VALUES.gasLimitRecommendedAmount;
   @observable public gasPrice: number = INIT_VALUES.gasPriceRecommendedAmount;
   public gasLimitRecommendedAmount: number = INIT_VALUES.gasLimitRecommendedAmount;
@@ -48,6 +59,19 @@ export default class SendStore {
   @computed public get maxTxFee(): number | undefined {
     return this.gasPrice && this.gasLimit
       ? Number(this.gasLimit) * Number(this.gasPrice) * 1e-8 : undefined;
+  }
+  @computed public get networkFeeLabel(): string | undefined {
+    return this.networkFee !== undefined ? `${(this.networkFee * 1e-8).toFixed(8)} MRX` : undefined;
+  }
+  @computed public get networkFeeUsdLabel(): string | undefined {
+    return this.mrxUsdRate && this.networkFee !== undefined
+      ? `$${(this.networkFee * 1e-8 * this.mrxUsdRate).toFixed(2)}` : undefined;
+  }
+  @computed public get effectiveFeeRate(): number | undefined {
+    if (this.isCustomFee && this.customFeeRate) {
+      return this.customFeeRate;
+    }
+    return this.feeRateTiers ? this.feeRateTiers[this.feeSpeed] : undefined;
   }
   @computed public get receiverFieldError(): string | undefined {
     return isValidAddress(this.app.sessionStore.isMainNet, this.receiverAddress)
@@ -94,6 +118,75 @@ export default class SendStore {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.GET_MAX_MRX_SEND,
     });
+
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_FEE_RATE_TIERS }, (tiers: any) => {
+      if (chrome.runtime.lastError) {
+        console.error('GET_FEE_RATE_TIERS failed:', chrome.runtime.lastError.message);
+        return;
+      }
+      this.feeRateTiers = tiers;
+      this.scheduleNetworkFeeEstimate();
+    });
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MRX_USD_RATE }, (rate: number) => {
+      if (chrome.runtime.lastError) {
+        console.error('GET_MRX_USD_RATE failed:', chrome.runtime.lastError.message);
+        return;
+      }
+      this.mrxUsdRate = rate;
+    });
+
+    reaction(
+      () => [
+        this.amount, this.gasLimit, this.gasPrice, this.feeSpeed, this.isCustomFee, this.customFeeRate,
+        this.token && this.token.symbol,
+      ],
+      () => this.scheduleNetworkFeeEstimate()
+    );
+  };
+
+  @action
+  public selectFeeTier = (speed: FeeSpeed) => {
+    this.feeSpeed = speed;
+    this.isCustomFee = false;
+  };
+
+  @action
+  public applyCustomFeeRate = (rate: number) => {
+    this.customFeeRate = rate;
+    this.isCustomFee = true;
+  };
+
+  private feeEstimateTimer?: ReturnType<typeof setTimeout>;
+
+  private scheduleNetworkFeeEstimate = () => {
+    if (this.feeEstimateTimer) {
+      clearTimeout(this.feeEstimateTimer);
+    }
+    this.feeEstimateTimer = setTimeout(this.updateNetworkFeeEstimate, NETWORK_FEE_ESTIMATE_DEBOUNCE_MS);
+  };
+
+  @action
+  private updateNetworkFeeEstimate = () => {
+    const feeRate = this.effectiveFeeRate;
+    if (!feeRate || !this.token) {
+      return;
+    }
+
+    const isMrx = this.token.symbol === 'MRX';
+    const amountSatoshi = isMrx
+      ? Math.round(Number(this.amount || 0) * 1e8)
+      : Math.round(Number(this.gasLimit || 0) * Number(this.gasPrice || 0));
+
+    chrome.runtime.sendMessage(
+      { type: MESSAGE_TYPE.ESTIMATE_TRANSACTION_FEE, amount: amountSatoshi, feeRate },
+      (fee: number) => {
+        if (chrome.runtime.lastError) {
+          console.error('ESTIMATE_TRANSACTION_FEE failed:', chrome.runtime.lastError.message);
+          return;
+        }
+        this.networkFee = fee;
+      }
+    );
   };
 
   @action
@@ -159,7 +252,7 @@ export default class SendStore {
         type: MESSAGE_TYPE.SEND_TOKENS,
         receiverAddress: this.receiverAddress,
         amount: Number(this.amount),
-        transactionSpeed: this.transactionSpeed,
+        feeRate: this.effectiveFeeRate,
       });
     } else {
       chrome.runtime.sendMessage({
@@ -169,6 +262,7 @@ export default class SendStore {
         token: this.token,
         gasLimit: Number(this.gasLimit),
         gasPrice: Number(this.gasPrice),
+        feeRate: this.effectiveFeeRate,
       });
     }
   };

@@ -15,6 +15,7 @@ import { inject, observer } from 'mobx-react';
 import styles from './styles';
 import PasswordInput from '../../components/PasswordInput';
 import Logo from '../../components/Logo';
+import NavBar from '../../components/NavBar';
 import AppStore from '../../stores/AppStore';
 
 interface IProps {
@@ -35,41 +36,45 @@ class Login extends Component<WithStyles & IProps, {}> {
 
     return (
       <div className={classes.root}>
-        <Logo />
-        <div className={classes.fieldContainer}>
-          <PasswordInput
-            classNames={classes.passwordField}
-            autoFocus={true}
-            placeholder="Password"
-            onChange={(e: any) => loginStore.password = e.target.value}
-            onEnterPress={loginStore.login}
-          />
-          {!hasAccounts && (
-            <Fragment>
-              <PasswordInput
-                classNames={classes.passwordField}
-                placeholder="Confirm password"
-                error={!!matchError}
-                errorText={matchError}
-                onChange={(e: any) => loginStore.confirmPassword = e.target.value}
-                onEnterPress={loginStore.login}
-              />
-              <Typography className={classes.masterPwNote}>
-                This will serve as your master password and will be saved when you create or import your first wallet.
-              </Typography>
-            </Fragment>
-          )}
+        <NavBar title="" />
+        <div className={classes.contentContainer}>
+          <Logo />
+          <div className={classes.fieldContainer}>
+            <PasswordInput
+              classNames={classes.passwordField}
+              autoFocus={true}
+              placeholder="Password"
+              onChange={(e: any) => loginStore.password = e.target.value}
+              onEnterPress={loginStore.login}
+            />
+            {!hasAccounts && (
+              <Fragment>
+                <PasswordInput
+                  classNames={classes.passwordField}
+                  placeholder="Confirm password"
+                  error={!!matchError}
+                  errorText={matchError}
+                  onChange={(e: any) => loginStore.confirmPassword = e.target.value}
+                  onEnterPress={loginStore.login}
+                />
+                <Typography className={classes.masterPwNote}>
+                  This will serve as your master password and will be saved when you create or import your first
+                  wallet.
+                </Typography>
+              </Fragment>
+            )}
+          </div>
+          <Button
+            className={classes.loginButton}
+            fullWidth
+            variant="contained"
+            color="primary"
+            disabled={error}
+            onClick={loginStore.login}
+          >
+            Login
+          </Button>
         </div>
-        <Button
-          className={classes.loginButton}
-          fullWidth
-          variant="contained"
-          color="primary"
-          disabled={error}
-          onClick={loginStore.login}
-        >
-          Login
-        </Button>
         <ErrorDialog {...this.props} />
       </div>
     );

@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { IExtensionAPIMessage, IRPCCallRequest } from '../types';
+import { IExtensionAPIMessage } from '../types';
 import { TARGET_NAME, API_TYPE } from '../constants';
 import { MetriMaskRPCProvider } from './MetriMaskRPCProvider';
-import { showSignTxWindow, showSignMessageWindow } from './window';
 import { isMessageNotValid } from '../utils';
 import { IInpageAccountWrapper } from '../types';
 
@@ -12,31 +11,11 @@ let metrimask: any = {
   rpcProvider: metrimaskProvider,
   account: null,
 };
-let signTxUrl: string;
-let signMessageUrl: string;
 
 const handlePortDisconnected = () => {
   metrimask = undefined;
   Object.assign(window, { metrimask });
   window.removeEventListener('message', handleInpageMessage, false);
-};
-
-/**
- * Handles the sendToContract request originating from the MetriMaskRPCProvider and opens the sign tx window.
- *
- * @param request SendToContract request.
- */
-const handleSendToContractRequest = (request: IRPCCallRequest) => {
-  showSignTxWindow({ url: signTxUrl, request });
-};
-
-/**
- * Handles the SignMessage request originating from the MetriMaskRPCProvider and opens the sign message window.
- *
- * @param request SendToContract request.
- */
- const handleSignMessageRequest = (request: IRPCCallRequest) => {
-  showSignMessageWindow({ url: signMessageUrl, request });
 };
 
 const handleInpageMessage = (event: MessageEvent) => {
@@ -46,18 +25,6 @@ const handleInpageMessage = (event: MessageEvent) => {
 
   const message: IExtensionAPIMessage<any> = event.data.message;
   switch (message.type) {
-    case API_TYPE.SIGN_TX_URL_RESOLVED:
-      signTxUrl = message.payload.url;
-      break;
-    case API_TYPE.SIGN_MESSAGE_URL_RESOLVED:
-      signMessageUrl = message.payload.url;
-      break;
-    case API_TYPE.RPC_SIGN_MESSAGE:
-      handleSignMessageRequest(message.payload);
-      break;
-    case API_TYPE.RPC_SEND_TO_CONTRACT:
-      handleSendToContractRequest(message.payload);
-      break;
     case API_TYPE.RPC_RESPONSE:
       return metrimaskProvider.handleRpcCallResponse(message.payload);
     case API_TYPE.SEND_INPAGE_METRIMASK_ACCOUNT_VALUES:

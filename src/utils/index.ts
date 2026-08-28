@@ -19,6 +19,20 @@ export const isMessageNotValid = (event: MessageEvent, targetName: TARGET_NAME):
 };
 
 /*
+* Races a promise against a timeout, rejecting if it doesn't settle in time. The underlying
+* Insight API client has no request timeout of its own, so a network hiccup can otherwise leave
+* an awaited fetch pending forever with nothing to fall back to.
+* @param promise The promise to bound.
+* @param ms Milliseconds to wait before rejecting.
+*/
+export const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timed out')), ms)),
+  ]);
+};
+
+/*
 * Generates a random string id.
 * @return The random string id.
 */

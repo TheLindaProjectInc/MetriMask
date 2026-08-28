@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/TheLindaProjectInc/MetriMask/actions/workflows/npm-yarn.yml/badge.svg)](https://github.com/TheLindaProjectInc/MetriMask/actions/workflows/npm-yarn.yml)
+
 ## Get MetriMask
 Chome Web Store: https://chrome.google.com/webstore/detail/pgjlaaokfffcapdcakncnhpmigjlnpei
 
@@ -149,7 +151,7 @@ RegTest is hidden from the network switcher by default (it's only relevant to de
 ## Building & Running Locally
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (a current LTS release)
+- [Node.js](https://nodejs.org/) 24 (current LTS) — required by `@zxing/library` (QR-code scanning)
 - [Yarn Classic (1.x)](https://classic.yarnpkg.com/) — this project uses a `yarn.lock` v1 lockfile, not Yarn Berry
 - A Chromium-based browser (Chrome, Edge, Brave, etc.)
 
@@ -157,9 +159,11 @@ RegTest is hidden from the network switcher by default (it's only relevant to de
 The same commands work identically on **Windows, macOS, and Linux** — no WSL, Git Bash, or other Unix shell is required. Run these from the project root in whatever terminal you prefer (PowerShell, cmd.exe, Terminal, etc.):
 
 ```
-yarn install    # install dependencies (only needed once, or after pulling dependency changes)
-yarn build      # production build -> dist/
+yarn install --ignore-engines    # install dependencies (only needed once, or after pulling dependency changes)
+yarn build                       # production build -> dist/
 ```
+
+`--ignore-engines` is required: this dependency set has no single Node version that satisfies every package's declared `engines` range (`@zxing/library` needs >=24, `eslint-plugin-jsdoc` caps out at 18) — both are advisory/inaccurate for how they're actually used here (zxing runs in the browser via webpack; jsdoc is a lint-time-only devDependency), not a sign anything is actually broken.
 
 or, for active development with auto-rebuild on file changes:
 

@@ -67,7 +67,7 @@ export default class Wallet implements ISigner {
     return await this.mjsWallet.send(to, amount * 1e8, { feeRate: options.feeRate });
   };
 
-  public sendTransaction = async (args: any[]): Promise<any> => {
+  public sendTransaction = async (args: any[], feeRate?: number): Promise<any> => {
     if (!this.rpcProvider) {
       throw Error('Cannot sign transaction without RPC provider.');
     }
@@ -76,17 +76,19 @@ export default class Wallet implements ISigner {
     }
 
     try {
-      return await this.rpcProvider.rawCall(RPC_METHOD.SEND_TO_CONTRACT, args);
+      return await this.rpcProvider.rawCall(RPC_METHOD.SEND_TO_CONTRACT, args, { feeRate });
     } catch (err) {
       throw err;
     }
   };
 
-  public calcMaxMetrixSend = async (networkName: string) => {
+  public calcMaxMetrixSend = async (networkName: string, feeRate?: number) => {
     if (!this.mjsWallet || !this.info) {
       throw Error('Cannot calculate max send amount without wallet or this.info.');
     }
-    this.maxMetrixSend = await this.mjsWallet.sendEstimateMaxValue(this.maxMetrixSendToAddress(networkName));
+    this.maxMetrixSend = await this.mjsWallet.sendEstimateMaxValue(
+      this.maxMetrixSendToAddress(networkName), { feeRate }
+    );
     return this.maxMetrixSend;
   };
 

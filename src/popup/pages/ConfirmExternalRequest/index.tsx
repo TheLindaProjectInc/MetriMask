@@ -5,7 +5,17 @@ import { Typography, TextField, Button, withStyles, WithStyles } from '@material
 
 import styles from './styles';
 import NavBar from '../../components/NavBar';
+import NetworkFeeControl from '../../components/NetworkFeeControl';
+import SliderInput from '../../components/SliderInput';
+import InfoTooltip from '../../components/InfoTooltip';
 import AppStore from '../../stores/AppStore';
+import Config from '../../../config';
+
+const GAS_LIMIT_INFO = 'Maximum amount of gas this transaction may consume. Unused gas is ' +
+  'refunded, so a higher limit is safe to set — but too low can cause the transaction to fail.';
+const GAS_PRICE_INFO = 'Price paid per unit of gas, in satoshi. This is multiplied by the gas ' +
+  'actually used to determine your contract execution cost — higher values do not speed up ' +
+  'execution, they only raise the cost.';
 
 interface IProps {
   classes: Record<string, string>;
@@ -45,10 +55,13 @@ const DetailField: React.FC<any> = ({ classes, label, value }: any) => (
   </div>
 );
 
-const NumberField: React.FC<any> = observer(({ classes, name, unit, value, onChange }: any) => (
+const NumberField: React.FC<any> = observer(({ classes, name, unit, value, onChange, slider, info }: any) => (
   <div className={classes.fieldContainer}>
     <div className={classes.fieldHeadingRow}>
-      <Typography className={classes.fieldHeading}>{name}</Typography>
+      <Typography className={classes.fieldHeading}>
+        {name}
+        {info && <InfoTooltip text={info} />}
+      </Typography>
     </div>
     <div className={classes.fieldTextContainer}>
       <TextField
@@ -64,6 +77,14 @@ const NumberField: React.FC<any> = observer(({ classes, name, unit, value, onCha
         onChange={(event) => onChange(event.target.value)}
       />
     </div>
+    {slider && (
+      <SliderInput
+        min={slider.min}
+        max={slider.max}
+        value={value}
+        onChange={(newValue) => onChange(String(newValue))}
+      />
+    )}
   </div>
 ));
 
@@ -87,6 +108,8 @@ const ConfirmSendToContract: React.FC<any> = observer(({ classes, store: { exter
       unit="GAS"
       value={externalRequestStore.gasLimit}
       onChange={externalRequestStore.changeGasLimit}
+      slider={{ min: Config.TRANSACTION.GAS_LIMIT_MIN, max: Config.TRANSACTION.GAS_LIMIT_MAX }}
+      info={GAS_LIMIT_INFO}
     />
     <NumberField
       classes={classes}
@@ -94,6 +117,19 @@ const ConfirmSendToContract: React.FC<any> = observer(({ classes, store: { exter
       unit="SATOSHI/GAS"
       value={externalRequestStore.gasPrice}
       onChange={externalRequestStore.changeGasPrice}
+      slider={{ min: Config.TRANSACTION.GAS_PRICE_MIN, max: Config.TRANSACTION.GAS_PRICE_MAX }}
+      info={GAS_PRICE_INFO}
+    />
+
+    <NetworkFeeControl
+      feeSpeed={externalRequestStore.feeSpeed}
+      isCustomFee={externalRequestStore.isCustomFee}
+      customFeeRate={externalRequestStore.customFeeRate}
+      feeRateTiers={externalRequestStore.feeRateTiers}
+      networkFeeLabel={externalRequestStore.networkFeeLabel}
+      networkFeeUsdLabel={externalRequestStore.networkFeeUsdLabel}
+      onSelectTier={externalRequestStore.selectFeeTier}
+      onApplyCustomFee={externalRequestStore.applyCustomFeeRate}
     />
 
     <div className={classes.card}>
@@ -108,7 +144,16 @@ const ConfirmSendToContract: React.FC<any> = observer(({ classes, store: { exter
       </div>
     </div>
 
-    <ConfirmCancelButtons classes={classes} externalRequestStore={externalRequestStore} confirmLabel="Confirm" />
+    {externalRequestStore.balanceError && (
+      <Typography className={classes.errorText}>{externalRequestStore.balanceError}</Typography>
+    )}
+
+    <ConfirmCancelButtons
+      classes={classes}
+      externalRequestStore={externalRequestStore}
+      confirmLabel="Confirm"
+      disabled={!!externalRequestStore.balanceError}
+    />
   </React.Fragment>
 ));
 
@@ -127,7 +172,7 @@ const ConfirmSignMessage: React.FC<any> = observer(({ classes, store: { external
   </React.Fragment>
 ));
 
-const ConfirmCancelButtons: React.FC<any> = ({ classes, externalRequestStore, confirmLabel }: any) => (
+const ConfirmCancelButtons: React.FC<any> = ({ classes, externalRequestStore, confirmLabel, disabled }: any) => (
   <div className={classes.buttonRow}>
     <Button
       className={classes.cancelButton}
@@ -141,6 +186,7 @@ const ConfirmCancelButtons: React.FC<any> = ({ classes, externalRequestStore, co
       className={classes.confirmButton}
       variant="contained"
       color="primary"
+      disabled={!!disabled}
       onClick={externalRequestStore.confirm}
     >
       {confirmLabel}

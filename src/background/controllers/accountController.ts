@@ -9,8 +9,8 @@ import IController from './iController';
 import { MESSAGE_TYPE, STORAGE, NETWORK_NAMES, METRIMASK_ACCOUNT_CHANGE } from '../../constants';
 import Account from '../../models/Account';
 import Wallet from '../../models/Wallet';
-import { TRANSACTION_SPEED } from '../../constants';
 import { IScryptParams } from 'metrixjs-wallet/lib/scrypt';
+import { selectTxs } from 'metrixjs-wallet/lib/tx';
 
 const INIT_VALUES = {
   mainnetAccounts: [],
@@ -435,32 +435,19 @@ export default class AccountController extends IController {
   * @param receiverAddress The address to send Metrix to.
   * @param amount The amount to send.
   */
-  private sendTokens = async (receiverAddress: string, amount: number, transactionSpeed: TRANSACTION_SPEED) => {
+  private sendTokens = async (receiverAddress: string, amount: number, feeRate?: number) => {
     if (!this.loggedInAccount || !this.loggedInAccount.wallet || !this.loggedInAccount.wallet.mjsWallet) {
       throw Error('Cannot send with no wallet instance.');
     }
 
-    /*
-    * TODO - As of 9/21/18 there is no congestion in the network and we are under
-    * capacity, so we are setting the same base fee rate for all transaction speeds.
-    * In the future if traffic changes, we will set different fee rates.
-    */
     try {
-      const rates = {
-        [TRANSACTION_SPEED.FAST]: 500000000,
-        [TRANSACTION_SPEED.NORMAL]: 350000000,
-        [TRANSACTION_SPEED.SLOW]: 226000000,
-      };
-      const feeRate = rates[transactionSpeed]; // satoshi/byte; 1000000 satoshi/byte == 10 MRX/KB
-      if (!feeRate) {
-        throw Error('feeRate not set');
-      }
+      const resolvedFeeRate = feeRate || (await this.main.network.getFeeRateTiers()).normal; // satoshi/byte
 
-      await this.loggedInAccount.wallet.send(receiverAddress, amount, {feeRate});
+      await this.loggedInAccount.wallet.send(receiverAddress, amount, {feeRate: resolvedFeeRate});
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_SUCCESS });
-    } catch (err) {
+    } catch (err: any) {
+      console.error(err);
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_FAILURE, error: err });
-      throw (err);
     }
   };
 
@@ -478,11 +465,35 @@ export default class AccountController extends IController {
       throw Error('Cannot calculate max balance with no wallet instance.');
     }
 
-    const calcMQSPr = this.loggedInAccount.wallet.calcMaxMetrixSend(this.main.network.networkName);
-    calcMQSPr.then(() => {
-      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MAX_MRX_SEND_RETURN,
-        maxMetrixAmount: this.loggedInAccount!.wallet!.maxMetrixSend});
-    });
+    // Conservative: use the fast (highest) tier so the displayed max never overstates what any
+    // selected speed could actually afford.
+    const tiers = await this.main.network.getFeeRateTiers();
+    await this.loggedInAccount.wallet.calcMaxMetrixSend(this.main.network.networkName, tiers.fast);
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_MAX_MRX_SEND_RETURN,
+      maxMetrixAmount: this.loggedInAccount!.wallet!.maxMetrixSend});
+  };
+
+  /*
+  * Read-only fee estimate for the live fee-speed slider -- reuses the exact same
+  * coin-selection accounting the real send uses, against the account's current UTXOs, with
+  * no signing/broadcast involved.
+  * @param amount Amount to reserve inputs for, in satoshi.
+  * @param feeRate satoshi/byte.
+  * @returns Estimated total fee in satoshi, or 0 if unavailable.
+  */
+  private estimateTransactionFee = async (amount: number, feeRate: number): Promise<number> => {
+    if (!this.loggedInAccount || !this.loggedInAccount.wallet || !this.loggedInAccount.wallet.mjsWallet) {
+      return 0;
+    }
+
+    try {
+      const utxos = await this.loggedInAccount.wallet.mjsWallet.getBitcoinjsUTXOs();
+      const { feeTotal } = selectTxs(utxos, amount, feeRate);
+      return feeTotal;
+    } catch (err) {
+      console.error('estimateTransactionFee failed', err);
+      return 0;
+    }
   };
 
   private handleMessage = async (
@@ -514,7 +525,7 @@ export default class AccountController extends IController {
           await this.loginAccount(request.selectedWalletName);
           break;
         case MESSAGE_TYPE.SEND_TOKENS:
-          this.sendTokens(request.receiverAddress, request.amount, request.transactionSpeed);
+          this.sendTokens(request.receiverAddress, request.amount, request.feeRate);
           break;
         case MESSAGE_TYPE.LOGOUT:
           this.logoutAccount();
@@ -541,11 +552,17 @@ export default class AccountController extends IController {
           sendResponse(this.loggedInAccount && this.loggedInAccount.wallet
             ? this.loggedInAccount.wallet.metrixUSD : undefined);
           break;
+        case MESSAGE_TYPE.GET_MRX_USD_RATE:
+          sendResponse(this.main.external.getMetrixToUsdRate());
+          break;
         case MESSAGE_TYPE.VALIDATE_WALLET_NAME:
           sendResponse(this.isWalletNameTaken(request.name));
           break;
         case MESSAGE_TYPE.GET_MAX_MRX_SEND:
           this.updateAndSendMaxMetrixAmountToPopup();
+          break;
+        case MESSAGE_TYPE.ESTIMATE_TRANSACTION_FEE:
+          sendResponse(await this.estimateTransactionFee(request.amount, request.feeRate));
           break;
         default:
           break;

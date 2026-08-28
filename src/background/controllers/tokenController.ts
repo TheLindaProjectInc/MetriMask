@@ -213,12 +213,12 @@ export default class TokenController extends IController {
   * @param gasPrice (unit - satoshi/gas)
   */
   private sendMRCToken = async (receiverAddress: string, amount: number, token: MRCToken,
-                                gasLimit: number, gasPrice: number ) => {
+                                gasLimit: number, gasPrice: number, feeRate?: number ) => {
     // bn.js does not handle decimals well (Ex: BN(1.2) => 1 not 1.2) so we use BigNumber
     const bnAmount = new BigNumber(amount).times(new BigNumber(10 ** token.decimals));
     const data = mweb3.encoder.constructData(mrc20TokenABI, 'transfer', [receiverAddress, bnAmount]);
     const args = [token.address, data, null, gasLimit, gasPrice];
-    const { error } = await this.main.rpc.sendToContract(generateRequestId(), args);
+    const { error } = await this.main.rpc.sendToContract(generateRequestId(), args, feeRate);
 
     if (error) {
       console.error(error);
@@ -264,7 +264,10 @@ export default class TokenController extends IController {
           sendResponse(this.tokens);
           break;
         case MESSAGE_TYPE.SEND_MRC_TOKENS:
-          this.sendMRCToken(request.receiverAddress, request.amount, request.token, request.gasLimit, request.gasPrice);
+          this.sendMRCToken(
+            request.receiverAddress, request.amount, request.token,
+            request.gasLimit, request.gasPrice, request.feeRate
+          );
           break;
         case MESSAGE_TYPE.ADD_TOKEN:
           this.addToken(request.contractAddress, request.name, request.symbol, request.decimals);

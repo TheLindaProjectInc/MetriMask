@@ -33,7 +33,7 @@ export default class RPCController extends IController {
   *   @argParam gasPrice (unit - satoshi/gas)
   * @return The result of the callcontract.
   */
-  public sendToContract = async (id: string, args: any[]): Promise<IRPCCallResponse> => {
+  public sendToContract = async (id: string, args: any[], feeRate?: number): Promise<IRPCCallResponse> => {
     let result: any;
     let error: string | undefined;
     try {
@@ -55,7 +55,10 @@ export default class RPCController extends IController {
         gasLimit || DEFAULT_GAS_LIMIT,
         gasPrice * 1e-8 || DEFAULT_GAS_PRICE,
       ];
-      result = await this.main.account.loggedInAccount!.wallet!.sendTransaction(newArgs) as Insight.ISendRawTxResult;
+      const resolvedFeeRate = feeRate || (await this.main.network.getFeeRateTiers()).normal;
+      result = await this.main.account.loggedInAccount!.wallet!.sendTransaction(
+        newArgs, resolvedFeeRate
+      ) as Insight.ISendRawTxResult;
     } catch (err: any) {
       error = err.message;
       console.error(error);
@@ -287,12 +290,12 @@ export default class RPCController extends IController {
   * @param id Request ID.
   * @param args Request arguments. [contractAddress, data, amount?, gasLimit?, gasPrice?]
   */
-  private externalSendToContract = async (id: string, args: any[], tabId?: number) => {
+  private externalSendToContract = async (id: string, args: any[], tabId?: number, feeRate?: number) => {
     if (!this.rpcProvider()) {
       throw Error('Cannot call RPC without provider.');
     }
 
-    const { result, error } = await this.sendToContract(id, args);
+    const { result, error } = await this.sendToContract(id, args, feeRate);
     this.sendRpcResponseToActiveTab(id, result, error, tabId);
   };
 
@@ -336,7 +339,7 @@ export default class RPCController extends IController {
         case MESSAGE_TYPE.EXTERNAL_SEND_TO_CONTRACT: {
           const tabId = this.pendingExternalRequest && this.pendingExternalRequest.tabId;
           this.pendingExternalRequest = undefined;
-          this.externalSendToContract(request.id, request.args, tabId);
+          this.externalSendToContract(request.id, request.args, tabId, request.feeRate);
           break;
         }
         case MESSAGE_TYPE.EXTERNAL_SIGN_MESSAGE: {

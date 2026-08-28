@@ -1,0 +1,38 @@
+diff --git a/node_modules/metrixjs-wallet/node_modules/bitcoinjs-lib/src/bufferutils.js b/node_modules/metrixjs-wallet/node_modules/bitcoinjs-lib/src/bufferutils.js
+index a68fd31..56f7d3a 100644
+--- a/node_modules/metrixjs-wallet/node_modules/bitcoinjs-lib/src/bufferutils.js
++++ b/node_modules/metrixjs-wallet/node_modules/bitcoinjs-lib/src/bufferutils.js
+@@ -15,13 +15,29 @@ function verifuint(value, max) {
+ }
+ function readUInt64LE(buffer, offset) {
+   const a = buffer.readUInt32LE(offset);
+-  let b = buffer.readUInt32LE(offset + 4);
+-  b *= 0x100000000;
+-  verifuint(b + a, 0x001fffffffffffff);
+-  return b + a;
++  const b = buffer.readUInt32LE(offset + 4);
++  const value = b * 0x100000000 + a;
++  if (value <= Number.MAX_SAFE_INTEGER) {
++    verifuint(value, 0x001fffffffffffff);
++    return value;
++  }
++  // Metrix/Qtum contract-refund ("OP_SPEND"/"OP_CALL") transactions can carry synthetic
++  // output values that exceed Number.MAX_SAFE_INTEGER -- these aren't real spendable
++  // amounts and are never used for arithmetic here, but a transaction containing one (which
++  // may also have a normal, real, spendable output we do care about) must still round-trip
++  // through parse -> reserialize with byte-for-byte fidelity, since bitcoinjs-lib recomputes
++  // this transaction's hash from a reserialization when verifying it against a spend input
++  // (see psbt.js's getHashForSig). A plain Number can't hold the exact value here, so return
++  // a BigInt to preserve full precision; writeUInt64LE below knows how to write it back out.
++  return BigInt(b) * BigInt(0x100000000) + BigInt(a);
+ }
+ exports.readUInt64LE = readUInt64LE;
+ function writeUInt64LE(buffer, value, offset) {
++  if (typeof value === 'bigint') {
++    buffer.writeInt32LE(Number(BigInt.asIntN(32, value)), offset);
++    buffer.writeUInt32LE(Number(value / BigInt(0x100000000)), offset + 4);
++    return offset + 8;
++  }
+   verifuint(value, 0x001fffffffffffff);
+   buffer.writeInt32LE(value & -1, offset);
+   buffer.writeUInt32LE(Math.floor(value / 0x100000000), offset + 4);

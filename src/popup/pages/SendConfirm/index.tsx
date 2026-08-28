@@ -7,6 +7,7 @@ import cx from 'classnames';
 import styles from './styles';
 import { SEND_STATE } from '../../../constants';
 import NavBar from '../../components/NavBar';
+import NetworkFeeControl from '../../components/NetworkFeeControl';
 import AppStore from '../../stores/AppStore';
 
 interface IProps {
@@ -20,7 +21,7 @@ class SendConfirm extends Component<WithStyles & IProps, {}> {
 
   public render() {
     const { classes, store: { sendStore } } = this.props;
-    const { senderAddress, receiverAddress, amount, token, transactionSpeed, gasLimit,
+    const { senderAddress, receiverAddress, amount, token, gasLimit,
     gasPrice, maxTxFee, sendState, errorMessage } = sendStore;
     const { SENDING, SENT } = SEND_STATE;
 
@@ -34,15 +35,23 @@ class SendConfirm extends Component<WithStyles & IProps, {}> {
               <AddressField fieldName={'To'} address={receiverAddress} {...this.props} />
             </div>
             <CostField fieldName={'Amount'} amount={amount} unit={token!.symbol} {...this.props} />
-            {this.props.store.sendStore.token && this.props.store.sendStore.token.symbol === 'MRX' ? (
-              <CostField fieldName={'Transaction Speed'} amount={transactionSpeed} unit={''} {...this.props} />
-            ) : (
+            {this.props.store.sendStore.token && this.props.store.sendStore.token.symbol !== 'MRX' && (
               <div>
                 <CostField fieldName={'Gas Limit'} amount={gasLimit} unit={'GAS'} {...this.props} />
                 <CostField fieldName={'Gas Price'} amount={gasPrice} unit={'SATOSHI/GAS'} {...this.props} />
                 <CostField fieldName={'Max Transaction Fee'} amount={maxTxFee} unit={'MRX'} {...this.props} />
               </div>
             )}
+            <NetworkFeeControl
+              feeSpeed={sendStore.feeSpeed}
+              isCustomFee={sendStore.isCustomFee}
+              customFeeRate={sendStore.customFeeRate}
+              feeRateTiers={sendStore.feeRateTiers}
+              networkFeeLabel={sendStore.networkFeeLabel}
+              networkFeeUsdLabel={sendStore.networkFeeUsdLabel}
+              onSelectTier={sendStore.selectFeeTier}
+              onApplyCustomFee={sendStore.applyCustomFeeRate}
+            />
           </div>
           {errorMessage && <Typography className={classes.errorMessage}>{errorMessage}</Typography>}
           <Button

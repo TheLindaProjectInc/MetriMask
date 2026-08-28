@@ -72,6 +72,11 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     wordBreak: 'break-all',
     fontFamily: 'monospace',
   },
+  errorText: {
+    fontSize: theme.font.xs,
+    color: theme.color.red,
+    marginTop: theme.padding.unit,
+  },
   buttonRow: {
     width: '100%',
     display: 'flex',

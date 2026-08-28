@@ -14,6 +14,29 @@ const DEFAULT_NETWORK_URLS: Record<string, string> = {
 
 const normalizeBaseUrl = (url: string): string => (url.endsWith('/') ? url : `${url}/`);
 
+// Matches metrixjs-wallet's own Wallet.js `defaultTxFeePerByte` fallback ("10 MRX/KB").
+// Bitcoin-protocol fee rates are denominated per 1000 bytes (decimal kB), not 1024 (KiB).
+const DEFAULT_FEE_RATE_PER_BYTE = Math.ceil((10 * 1e8) / 1000);
+
+// Absorbs natural per-transaction size variance (ECDSA signature DER encoding varies by a
+// few bytes each time a transaction is signed) and general estimate uncertainty, so a
+// transaction doesn't land just under the network's minimum relay fee and get rejected.
+const FEE_RATE_SAFETY_MARGIN = 1.05;
+
+const FEE_SPEED_MULTIPLIERS = {
+  // Kept close to 1x (rather than a steep discount) so the safety-margined "slow" tier
+  // still can't undershoot the network's actual minimum relay fee.
+  slow: 0.9,
+  normal: 1,
+  fast: 1.5,
+};
+
+export interface IFeeRateTiers {
+  slow: number;
+  normal: number;
+  fast: number;
+}
+
 export default class NetworkController extends IController {
   public static NETWORKS: QryNetwork[] = [
     new QryNetwork(NETWORK_NAMES.MAINNET, networks.mainnet, DEFAULT_NETWORK_URLS[NETWORK_NAMES.MAINNET]),
@@ -122,6 +145,33 @@ export default class NetworkController extends IController {
     }
   };
 
+  /*
+  * Derives Slow/Normal/Fast network fee-rate tiers (satoshi/byte) from the current network's
+  * live fee estimate, falling back to the library's own "10 MRX/KB" default when the API
+  * doesn't return a usable estimate (matches metrixjs-wallet's own internal fallback).
+  */
+  public getFeeRateTiers = async (): Promise<IFeeRateTiers> => {
+    let baseRate = DEFAULT_FEE_RATE_PER_BYTE;
+
+    try {
+      const networkInfo = NetworkController.NETWORKS[this.networkIndex].network.info;
+      const estimated = await Insight.forNetwork(networkInfo).estimateFeePerByte();
+      if (estimated && estimated > 0) {
+        baseRate = estimated;
+      }
+    } catch (err) {
+      console.error('getFeeRateTiers: falling back to default fee rate', err);
+    }
+
+    baseRate = Math.ceil(baseRate * FEE_RATE_SAFETY_MARGIN);
+
+    return {
+      slow: Math.ceil(baseRate * FEE_SPEED_MULTIPLIERS.slow),
+      normal: Math.ceil(baseRate * FEE_SPEED_MULTIPLIERS.normal),
+      fast: Math.ceil(baseRate * FEE_SPEED_MULTIPLIERS.fast),
+    };
+  };
+
   public saveRegtestEnabled = (enabled: boolean) => {
     this.regtestEnabled = enabled;
     chrome.storage.local.set({ [STORAGE.REGTEST_ENABLED]: enabled });
@@ -182,6 +232,9 @@ export default class NetworkController extends IController {
         case MESSAGE_TYPE.SAVE_REGTEST_ENABLED:
           this.saveRegtestEnabled(request.enabled);
           break;
+        case MESSAGE_TYPE.GET_FEE_RATE_TIERS:
+          this.getFeeRateTiers().then(sendResponse);
+          return true;
         default:
           break;
       }
@@ -189,5 +242,6 @@ export default class NetworkController extends IController {
       console.error(err);
       this.main.displayErrorOnPopup(err);
     }
+    return false;
   };
 }

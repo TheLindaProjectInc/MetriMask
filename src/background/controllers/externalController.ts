@@ -24,6 +24,8 @@ export default class ExternalController extends IController {
     return this.metrixPriceUSD ? Number((this.metrixPriceUSD * balance).toFixed(2)) : 0;
   };
 
+  public getMetrixToUsdRate = (): number => this.metrixPriceUSD;
+
   /*
   * Starts polling for periodic info updates.
   */

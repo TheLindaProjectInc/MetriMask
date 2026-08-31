@@ -73,7 +73,7 @@
     "classnames": "^2.2.6",
     "deep-equal": "^2.0.5",
     "fetch-absolute": "^1.0.0",
-    "follow-redirects": "1.14.8",
+    "follow-redirects": "1.16.0",
     "metrixjs-wallet": "^0.3.2",
     "mobx": "^5.15.7",
     "mobx-react": "^5.2.3",

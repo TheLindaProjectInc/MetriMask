@@ -37,6 +37,16 @@ export default class ExternalRequestStore {
     if (!this.pendingRequest) {
       return '';
     }
+    if (this.pendingRequest.kind === 'sendToContract') {
+      // Mirror confirm()'s args exactly, so the preview always matches what's actually sent --
+      // pendingRequest.args holds the dApp's original (possibly stale) values, not the
+      // user's edits from the Amount/Gas Limit/Gas Price fields above.
+      const [address, data] = this.pendingRequest.args;
+      return JSON.stringify({
+        id: this.pendingRequest.id,
+        args: [address, data, this.amount, this.gasLimit, this.gasPrice],
+      });
+    }
     return JSON.stringify({ id: this.pendingRequest.id, args: this.pendingRequest.args });
   }
   public get maxTxFee(): number {

@@ -1,5 +1,6 @@
 import { isFinite } from 'lodash';
-import { validatePrivateKey } from 'metrixjs-wallet';
+import { validatePrivateKey, Network } from 'metrixjs-wallet';
+import * as bitcoin from 'bitcoinjs-lib';
 
 import { TARGET_NAME } from '../constants';
 import { IExtensionMessageData } from '../types';
@@ -41,22 +42,28 @@ export const generateRandomId = (): string => {
 };
 
 /*
-* Validates the Metrix address based on length and starting character.
-* @param isMainNet {boolean} Flag if is a mainnet address (or else testnet address).
+* Validates a Metrix address (legacy base58check P2PKH/P2SH, or bech32/segwit) against the
+* active network's params.
+* @param network {Network} The active network (mainnet/testnet/regtest) to validate against.
 * @param address {string} The Metrix address to validate.
 * @return {boolean} Returns if it is a valid Metrix address.
 */
-export const isValidAddress = (isMainNet: boolean, address?: string) => {
+export const isValidAddress = (network: Network, address?: string) => {
   if (!address) {
     return false;
   }
-  if (address.length !== 34) {
+  try {
+    const decoded = bitcoin.address.fromBase58Check(address);
+    return decoded.version === network.info.pubKeyHash || decoded.version === network.info.scriptHash;
+  } catch (e) {
+    // Not a base58check address -- fall through and try bech32.
+  }
+  try {
+    const decoded = bitcoin.address.fromBech32(address);
+    return decoded.prefix === network.info.bech32;
+  } catch (e) {
     return false;
   }
-  if (isMainNet) {
-    return address.startsWith('M');
-  }
-  return address.startsWith('m');
 };
 
 export const isValidPrivateKey = (address?: string) => {

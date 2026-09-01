@@ -74,7 +74,11 @@ export default class SendStore {
     return this.feeRateTiers ? this.feeRateTiers[this.feeSpeed] : undefined;
   }
   @computed public get receiverFieldError(): string | undefined {
-    return isValidAddress(this.app.sessionStore.isMainNet, this.receiverAddress)
+    const currentNetwork = this.app.sessionStore.networks[this.app.sessionStore.networkIndex];
+    if (!currentNetwork) {
+      return undefined;
+    }
+    return isValidAddress(currentNetwork.network, this.receiverAddress)
       ? undefined : 'Not a valid Metrix address';
   }
   @computed public get amountFieldError(): string | undefined {

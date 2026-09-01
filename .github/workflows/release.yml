@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+
+      - name: Install yarn
+        run: npm install -g yarn
+      - name: Install deps
+        # See .github/workflows/npm-yarn.yml for why --ignore-engines is required.
+        run: yarn install --ignore-engines
+      - name: Build
+        run: yarn run build
+
+      - name: Read package version
+        id: package-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Zip dist for the Chrome Web Store
+        # The Chrome Web Store expects manifest.json at the root of the uploaded zip,
+        # so zip dist/'s contents directly rather than the dist folder itself.
+        run: cd dist && zip -r "../metrimask-v${{ steps.package-version.outputs.version }}.zip" .
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', steps.package-version.outputs.version) }}
+          files: metrimask-v${{ steps.package-version.outputs.version }}.zip
+          draft: ${{ github.ref_type != 'tag' }}
+          generate_release_notes: true

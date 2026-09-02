@@ -126,6 +126,43 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
   qrScanSpinner: {
     color: theme.palette.primary.main,
   },
+  recipientRow: {
+    padding: theme.padding.sm,
+    marginBottom: theme.padding.sm,
+    background: theme.card.background,
+    border: theme.card.border,
+    borderRadius: theme.card.radius,
+  },
+  recipientRowHeadingContainer: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.padding.sm,
+  },
+  recipientRowHeading: {
+    fontSize: theme.font.sm,
+    fontWeight: 'bold',
+    color: theme.palette.text.secondary,
+  },
+  removeRecipientButton: {
+    padding: theme.padding.unit,
+    width: theme.icon.size,
+    height: theme.icon.size,
+  },
+  removeRecipientIcon: {
+    fontSize: theme.font.lg,
+    color: theme.color.red,
+  },
+  addRecipientButton: {
+    width: '100%',
+    marginBottom: theme.padding.sm,
+  },
+  addRecipientIcon: {
+    fontSize: theme.font.md,
+    marginRight: theme.padding.halfUnit,
+  },
 });
 
 export default styles;

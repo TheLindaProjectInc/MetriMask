@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import {
   Typography, Select, MenuItem, TextField, Button, IconButton, CircularProgress, withStyles, WithStyles,
 } from '@material-ui/core';
-import { CropFree } from '@material-ui/icons';
+import { CropFree, Add, Close } from '@material-ui/icons';
 import { inject, observer } from 'mobx-react';
 import { map } from 'lodash';
 
@@ -43,9 +43,8 @@ class Send extends Component<WithStyles & IProps, {}> {
         <div className={classes.contentContainer}>
           <div className={classes.fieldsContainer}>
             <FromField {...this.props} />
-            <ToField onEnterPress={this.onEnterPress} {...this.props} />
             <TokenField {...this.props} />
-            <AmountField onEnterPress={this.onEnterPress} {...this.props} />
+            <RecipientsField onEnterPress={this.onEnterPress} {...this.props} />
             {this.props.store.sendStore.token && this.props.store.sendStore.token.symbol === 'MRX' ? (
                 <FeeSpeedField {...this.props} />
             ) : (
@@ -96,44 +95,133 @@ const FromField = observer(({ classes, store: { sessionStore } }: any) => (
   </div>
 ));
 
-const ToField = observer(({ classes, store: { sendStore, sessionStore }, onEnterPress }: any) => (
-  <div className={classes.fieldContainer}>
-    <Heading name="To" />
-    <div className={classes.fieldTextContainer}>
-      <TextField
-        className={classes.selectOrTextField}
-        fullWidth
-        type="text"
-        multiline={false}
-        placeholder={sessionStore.info.addrStr}
-        value={sendStore.receiverAddress || ''}
-        InputProps={{
-          className: classes.fieldTextOrInput,
-          endAdornment: (
-            <IconButton
-              className={classes.qrScanButton}
-              disabled={sendStore.qrScanning}
-              onClick={() => sendStore.scanQrFromPage()}
-            >
-              {sendStore.qrScanning
-                ? <CircularProgress size={18} className={classes.qrScanSpinner} />
-                : <CropFree className={classes.qrScanIcon} />}
-            </IconButton>
-          ),
-          disableUnderline: true,
-        }}
-        onChange={(event) => sendStore.receiverAddress = event.target.value}
-        onKeyPress={onEnterPress}
+const RecipientsField = observer(({ classes, store: { sendStore }, onEnterPress }: any) => (
+  <div>
+    {sendStore.recipients.map((_recipient: any, index: number) => (
+      <RecipientRow
+        key={index}
+        classes={classes}
+        sendStore={sendStore}
+        index={index}
+        onEnterPress={onEnterPress}
       />
-    </div>
-    {!!sendStore.receiverAddress && sendStore.receiverFieldError && (
-      <Typography className={classes.errorText}>{sendStore.receiverFieldError}</Typography>
+    ))}
+    {sendStore.recipients.length > 1 && sendStore.amountFieldError && (
+      <Typography className={classes.errorText}>{sendStore.amountFieldError}</Typography>
     )}
-    {sendStore.qrScanError && (
-      <Typography className={classes.errorText}>{sendStore.qrScanError}</Typography>
+    {sendStore.token && sendStore.token.symbol === 'MRX' && (
+      <Button color="primary" className={classes.addRecipientButton} onClick={sendStore.addRecipient}>
+        <Add className={classes.addRecipientIcon} /> Add recipient
+      </Button>
     )}
   </div>
 ));
+
+const RecipientRow = observer(({ classes, sendStore, index, onEnterPress }: any) => {
+  const recipient = sendStore.recipients[index];
+  const errors = sendStore.recipientErrors[index] || {};
+  const showRemove = sendStore.recipients.length > 1;
+
+  return (
+    <div className={classes.recipientRow}>
+      {showRemove && (
+        <div className={classes.recipientRowHeadingContainer}>
+          <Typography className={classes.recipientRowHeading}>Recipient {Number(index) + 1}</Typography>
+          <IconButton
+            className={classes.removeRecipientButton}
+            onClick={() => sendStore.removeRecipient(index)}
+          >
+            <Close className={classes.removeRecipientIcon} />
+          </IconButton>
+        </div>
+      )}
+      <div className={classes.fieldContainer}>
+        <Heading name="To" />
+        <div className={classes.fieldTextContainer}>
+          <TextField
+            className={classes.selectOrTextField}
+            fullWidth
+            type="text"
+            multiline={false}
+            placeholder={sendStore.senderAddress}
+            value={recipient.address || ''}
+            InputProps={{
+              className: classes.fieldTextOrInput,
+              endAdornment: (
+                <IconButton
+                  className={classes.qrScanButton}
+                  disabled={sendStore.qrScanning}
+                  onClick={() => sendStore.scanQrFromPage(index)}
+                >
+                  {sendStore.qrScanning
+                    ? <CircularProgress size={18} className={classes.qrScanSpinner} />
+                    : <CropFree className={classes.qrScanIcon} />}
+                </IconButton>
+              ),
+              disableUnderline: true,
+            }}
+            onChange={(event) => sendStore.changeRecipientAddress(index, event.target.value)}
+            onKeyPress={onEnterPress}
+          />
+        </div>
+        {!!recipient.address && errors.address && (
+          <Typography className={classes.errorText}>{errors.address}</Typography>
+        )}
+        {index === sendStore.recipients.length - 1 && sendStore.qrScanError && (
+          <Typography className={classes.errorText}>{sendStore.qrScanError}</Typography>
+        )}
+      </div>
+      <div className={classes.fieldContainer}>
+        <div className={classes.buttonFieldHeadingContainer}>
+          <div className={classes.buttonFieldHeadingTextContainer}>
+            <Heading name="Amount" />
+          </div>
+          {sendStore.recipients.length === 1 && (
+            <React.Fragment>
+              <Typography className={classes.fieldButtonText}>{sendStore.maxAmount}</Typography>
+              <Button
+                color="primary"
+                className={classes.fieldButton}
+                onClick={() => sendStore.changeRecipientAmount(index, sendStore.maxAmount)}
+              >
+                Max
+              </Button>
+            </React.Fragment>
+          )}
+        </div>
+        <div className={classes.fieldTextContainer}>
+          <TextField
+            className={classes.selectOrTextField}
+            fullWidth
+            type="number"
+            multiline={false}
+            placeholder={'0.00'}
+            value={recipient.amount}
+            InputProps={{
+              classes: {
+                input: classes.fieldInput,
+              },
+              className: classes.fieldTextOrInput,
+              endAdornment: (
+                <Typography className={classes.fieldTextAdornment}>
+                  {sendStore.token && sendStore.token.symbol}
+                </Typography>
+              ),
+              disableUnderline: true,
+            }}
+            onChange={(event) => sendStore.changeRecipientAmount(
+              index, event.target.value === '' ? '' : Number(event.target.value)
+            )}
+            onKeyPress={onEnterPress}
+          />
+        </div>
+        {recipient.amount !== '' && errors.amount && (
+          <Typography className={classes.errorText}>{errors.amount}</Typography>
+        )}
+      </div>
+    </div>
+  );
+});
 
 const TokenField = observer(({ classes, store: { sendStore } }: any) => (
   <div className={classes.fieldContainer}>
@@ -152,52 +240,6 @@ const TokenField = observer(({ classes, store: { sendStore } }: any) => (
         ))}
       </Select>
     </div>
-  </div>
-));
-
-const AmountField = observer(({ classes, store: { sendStore }, onEnterPress }: any) => (
-  <div className={classes.fieldContainer}>
-    <div className={classes.buttonFieldHeadingContainer}>
-      <div className={classes.buttonFieldHeadingTextContainer}>
-        <Heading name="Amount" />
-      </div>
-      <Typography className={classes.fieldButtonText}>{sendStore.maxAmount}</Typography>
-      <Button
-        color="primary"
-        className={classes.fieldButton}
-        onClick={() => sendStore.amount = sendStore.maxAmount}
-      >
-        Max
-      </Button>
-    </div>
-    <div className={classes.fieldTextContainer}>
-      <TextField
-        className={classes.selectOrTextField}
-        fullWidth
-        type="number"
-        multiline={false}
-        placeholder={'0.00'}
-        value={sendStore.amount}
-        InputProps={{
-          classes: {
-            input: classes.fieldInput,
-          },
-          className: classes.fieldTextOrInput,
-          endAdornment: (
-            <Typography className={classes.fieldTextAdornment}>
-              {sendStore.token && sendStore.token.symbol}
-            </Typography>
-          ),
-          disableUnderline: true,
-        }}
-        onChange={(event) => event.target.value === '' ? sendStore.amount = ''
-          : sendStore.amount = Number(event.target.value)}
-        onKeyPress={onEnterPress}
-      />
-    </div>
-    {sendStore.amount !== '' && sendStore.amountFieldError && (
-      <Typography className={classes.errorText}>{sendStore.amountFieldError}</Typography>
-    )}
   </div>
 ));
 

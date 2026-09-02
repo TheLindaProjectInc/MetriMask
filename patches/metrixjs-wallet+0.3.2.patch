@@ -65,6 +65,54 @@ index 3e4ef64..681bbf4 100644
          });
      }
      /**
+diff --git a/node_modules/metrixjs-wallet/lib/Wallet.d.ts b/node_modules/metrixjs-wallet/lib/Wallet.d.ts
+index 713da02..4224bd4 100644
+--- a/node_modules/metrixjs-wallet/lib/Wallet.d.ts
++++ b/node_modules/metrixjs-wallet/lib/Wallet.d.ts
+@@ -2,7 +2,7 @@ import { ECPairInterface } from 'bitcoinjs-lib';
+ import { BIP32Interface } from "bip32";
+ import { INetworkInfo } from "./Network";
+ import { Insight } from "./Insight";
+-import { IUTXO, IContractSendTXOptions, ISendTxOptions, IContractCreateTXOptions } from "./tx";
++import { IUTXO, IContractSendTXOptions, ISendTxOptions, IContractCreateTXOptions, ITxOutput } from "./tx";
+ import { IScryptParams } from "./scrypt";
+ export declare class Wallet {
+     keyPair: ECPairInterface;
+@@ -35,13 +35,14 @@ export declare class Wallet {
+     /**
+      * Generate and sign a payment transaction.
+      *
+-     * @param to The receiving address
+-     * @param amount The amount to transfer (in satoshi)
++     * @param to The receiving address, or an array of {address, amount} outputs for a
++     *   multi-recipient transaction (in which case `amount` is ignored).
++     * @param amount The amount to transfer (in satoshi). Ignored when `to` is an array.
+      * @param opts
+      *
+      * @returns The raw transaction as hexadecimal string
+      */
+-    generateTx(to: string, amount: number, opts?: ISendTxOptions): Promise<string>;
++    generateTx(to: string | ITxOutput[], amount: number | undefined, opts?: ISendTxOptions): Promise<string>;
+     /**
+      * Estimate the maximum value that could be sent from this wallet address.
+      *
+@@ -56,12 +57,13 @@ export declare class Wallet {
+      * using the wallet's private key, and the raw transaction submitted to a
+      * remote API (without revealing the wallet's secret).
+      *
+-     * @param to The receiving address
+-     * @param amount The amount to transfer (in satoshi)
++     * @param to The receiving address, or an array of {address, amount} outputs for a
++     *   multi-recipient transaction (in which case `amount` is ignored).
++     * @param amount The amount to transfer (in satoshi). Ignored when `to` is an array.
+      * @param opts
+      * @return The raw transaction as hexadecimal string
+      */
+-    send(to: string, amount: number, opts?: ISendTxOptions): Promise<Insight.ISendRawTxResult>;
++    send(to: string | ITxOutput[], amount: number | undefined, opts?: ISendTxOptions): Promise<Insight.ISendRawTxResult>;
+     /**
+      * Submit a signed raw transaction to the network.
+      *
 diff --git a/node_modules/metrixjs-wallet/lib/Wallet.js b/node_modules/metrixjs-wallet/lib/Wallet.js
 index b2b34f4..45590e7 100644
 --- a/node_modules/metrixjs-wallet/lib/Wallet.js
@@ -111,10 +159,10 @@ index b2b34f4..45590e7 100644
          });
      }
 diff --git a/node_modules/metrixjs-wallet/lib/tx.d.ts b/node_modules/metrixjs-wallet/lib/tx.d.ts
-index 428b0d3..e4d7360 100644
+index 428b0d3..66292cf 100644
 --- a/node_modules/metrixjs-wallet/lib/tx.d.ts
 +++ b/node_modules/metrixjs-wallet/lib/tx.d.ts
-@@ -55,6 +55,16 @@ export interface IUTXO {
+@@ -55,17 +55,37 @@ export interface IUTXO {
      isStake: boolean;
      confirmations: number;
  }
@@ -122,17 +170,41 @@ index 428b0d3..e4d7360 100644
 +    inputs: IUTXO[];
 +    feeTotal: number;
 +}
++export interface ITxOutput {
++    address: string;
++    /**
++     * unit: satoshi
++     */
++    amount: number;
++}
 +/**
 + * Select UTXOs to cover amount + fee (satoshi/byte), reusing the exact accounting the
 + * transaction builders use -- lets callers get a real fee estimate without signing/building
 + * a transaction.
++ * @param numOutputs Worst-case number of outputs the built transaction will have (destinations
++ *   + change), used to size the reserved fee. Defaults to 2 (one destination + one change).
 + */
-+export declare function selectTxs(unspentTransactions: IUTXO[], amount: number, fee: number): ISelectTxsResult;
++export declare function selectTxs(unspentTransactions: IUTXO[], amount: number, fee: number, numOutputs?: number): ISelectTxsResult;
  export declare function estimatePubKeyHashTransactionMaxSend(utxos: IUTXO[], to: string, feeRate: number): number;
  /**
   * Build a pay-to-pubkey-hash transaction
+  *
+  * @param keyPair
+- * @param to
+- * @param amount (unit: satoshi)
++ * @param to A single receiving address, or an array of {address, amount} outputs for a
++ *   multi-recipient transaction (in which case `amount` is ignored).
++ * @param amount (unit: satoshi) Ignored when `to` is an array.
+  * @param feeRate
+  * @param utxoList
+  */
+-export declare function buildPubKeyHashTransaction(utxos: IUTXO[], keyPair: ECPairInterface, to: string, amount: number, feeRate: number): string;
++export declare function buildPubKeyHashTransaction(utxos: IUTXO[], keyPair: ECPairInterface, to: string | ITxOutput[], amount: number | undefined, feeRate: number): string;
+ /**
+  * Build a create-contract transaction
+  *
 diff --git a/node_modules/metrixjs-wallet/lib/tx.js b/node_modules/metrixjs-wallet/lib/tx.js
-index 49bcaae..7938187 100644
+index 49bcaae..2f7e632 100644
 --- a/node_modules/metrixjs-wallet/lib/tx.js
 +++ b/node_modules/metrixjs-wallet/lib/tx.js
 @@ -32,6 +32,20 @@ function ensureAmountInteger(n) {
@@ -156,20 +228,29 @@ index 49bcaae..7938187 100644
  function estimatePubKeyHashTransactionMaxSend(utxos, to, feeRate) {
      let maxAmount = 0;
      for (const utxo of utxos) {
+@@ -57,7 +71,7 @@ exports.estimatePubKeyHashTransactionMaxSend = estimatePubKeyHashTransactionMaxS
+  * @param Number fee(unit: satoshis)
+  * @returns [transaction]
+  */
+-function selectTxs(unspentTransactions, amount, fee) {
++function selectTxs(unspentTransactions, amount, fee, numOutputs = 2) {
+     //sort the utxo
+     var matureList = [];
+     var immatureList = [];
 @@ -80,7 +94,11 @@ function selectTxs(unspentTransactions, amount, fee) {
          var tx = unspentTransactions[i];
          findTotal = findTotal.plus(tx.value);
          find[find.length] = tx;
 -        feeTotal = feeTotal.plus(fee);
 +        // fee is satoshi/byte; recompute the real fee for the tx size so far
-+        // (assumes worst-case 2 outputs -- destination/opcall + change --
++        // (assumes worst-case numOutputs outputs -- destinations/opcall + change --
 +        // which slightly over-reserves when there's no change output, never
 +        // under-reserves) instead of treating fee as a flat per-input amount.
-+        feeTotal = new bignumber_js_1.BigNumber(Math.ceil(estimateTxBytes(find.length, 2) * fee));
++        feeTotal = new bignumber_js_1.BigNumber(Math.ceil(estimateTxBytes(find.length, numOutputs) * fee));
          if (findTotal.isGreaterThanOrEqualTo(value.plus(feeTotal)))
              break;
      }
-@@ -89,6 +107,7 @@ function selectTxs(unspentTransactions, amount, fee) {
+@@ -89,19 +107,26 @@ function selectTxs(unspentTransactions, amount, fee) {
      }
      return { inputs: find, feeTotal: feeTotal.toNumber() };
  }
@@ -177,16 +258,56 @@ index 49bcaae..7938187 100644
  /**
   * Build a pay-to-pubkey-hash transaction
   *
-@@ -123,7 +142,7 @@ function buildPubKeyHashTransaction(utxos, keyPair, to, amount, feeRate) {
+  * @param keyPair
+- * @param to
+- * @param amount (unit: satoshi)
++ * @param to A single receiving address, or an array of {address, amount} outputs for a
++ *   multi-recipient transaction (in which case `amount` is ignored).
++ * @param amount (unit: satoshi) Ignored when `to` is an array.
+  * @param feeRate
+  * @param utxoList
+  */
+ function buildPubKeyHashTransaction(utxos, keyPair, to, amount, feeRate) {
+-    ensureAmountInteger(amount);
++    const outputs = Array.isArray(to) ? to : [{ address: to, amount }];
++    for (const output of outputs) {
++        ensureAmountInteger(output.amount);
++    }
+     const senderAddress = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: keyPair.network }).address;
+-    let { inputs, feeTotal: txfee } = selectTxs(utxos, amount, feeRate);
++    const totalAmount = outputs.reduce((sum, output) => sum + output.amount, 0);
++    // Worst case is every destination output plus a change output.
++    let { inputs, feeTotal: txfee } = selectTxs(utxos, totalAmount, feeRate, outputs.length + 1);
+     if (inputs == null) {
+         throw new Error("could not find UTXOs to build transaction");
+     }
+@@ -115,15 +140,20 @@ function buildPubKeyHashTransaction(utxos, keyPair, to, amount, feeRate) {
+         });
+         vinSum = vinSum.plus(input.value);
+     }
+-    if (vinSum.isEqualTo(new bignumber_js_1.BigNumber(amount))) {
+-        amount = new bignumber_js_1.BigNumber(amount).minus(txfee).toNumber();
++    // "Send max" only makes sense for a single recipient -- ambiguous which
++    // recipient would absorb the fee otherwise.
++    if (outputs.length === 1 && vinSum.isEqualTo(new bignumber_js_1.BigNumber(totalAmount))) {
++        outputs[0].amount = new bignumber_js_1.BigNumber(outputs[0].amount).minus(txfee).toNumber();
++    }
++    const outputTotal = outputs.reduce((sum, output) => sum + output.amount, 0);
++    for (const output of outputs) {
++        txb.addOutput({ address: output.address, value: output.amount });
+     }
+-    txb.addOutput({ address: to, value: amount });
+     const change = vinSum
          .minus(txfee)
-         .minus(amount)
+-        .minus(amount)
++        .minus(outputTotal)
          .toNumber();
 -    if (change > 0) {
 +    if (change > dustThreshold(feeRate)) {
          txb.addOutput({ address: senderAddress, value: change });
      }
      for (let i = 0; i < inputs.length; i++) {
-@@ -177,7 +196,7 @@ function buildCreateContractTransaction(utxos, keyPair, code, feeRate, opts = {}
+@@ -177,7 +207,7 @@ function buildCreateContractTransaction(utxos, keyPair, code, feeRate, opts = {}
          .minus(txfee)
          .minus(gasLimitFee)
          .toNumber();
@@ -195,7 +316,7 @@ index 49bcaae..7938187 100644
          txb.addOutput({ address: fromAddress, value: change });
      }
      for (let i = 0; i < inputs.length; i++) {
-@@ -278,7 +297,7 @@ function buildSendToContractTransaction(utxos, keyPair, contractAddress, encoded
+@@ -278,7 +308,7 @@ function buildSendToContractTransaction(utxos, keyPair, contractAddress, encoded
          .minus(gasLimitFee)
          .minus(amount)
          .toNumber();
@@ -204,7 +325,7 @@ index 49bcaae..7938187 100644
          txb.addOutput({ address: senderAddress, value: change });
      }
      for (let i = 0; i < inputs.length; i++) {
-@@ -290,7 +309,7 @@ function buildSendToContractTransaction(utxos, keyPair, contractAddress, encoded
+@@ -290,7 +320,7 @@ function buildSendToContractTransaction(utxos, keyPair, contractAddress, encoded
  }
  exports.buildSendToContractTransaction = buildSendToContractTransaction;
  // The prevalent network fee is 10 per KB. If set to 100 times of norm, assume error.

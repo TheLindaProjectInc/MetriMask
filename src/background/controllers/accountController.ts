@@ -434,11 +434,10 @@ export default class AccountController extends IController {
   };
 
   /*
-  * Executes a sendtoaddress.
-  * @param receiverAddress The address to send Metrix to.
-  * @param amount The amount to send.
+  * Executes a sendtoaddress, to one or more recipients in a single transaction.
+  * @param recipients The addresses and amounts (whole MRX) to send.
   */
-  private sendTokens = async (receiverAddress: string, amount: number, feeRate?: number) => {
+  private sendTokens = async (recipients: { address: string; amount: number }[], feeRate?: number) => {
     if (!this.loggedInAccount || !this.loggedInAccount.wallet || !this.loggedInAccount.wallet.mjsWallet) {
       throw Error('Cannot send with no wallet instance.');
     }
@@ -446,7 +445,13 @@ export default class AccountController extends IController {
     try {
       const resolvedFeeRate = feeRate || (await this.main.network.getFeeRateTiers()).normal; // satoshi/byte
 
-      await this.loggedInAccount.wallet.send(receiverAddress, amount, {feeRate: resolvedFeeRate});
+      if (recipients.length === 1) {
+        await this.loggedInAccount.wallet.send(
+          recipients[0].address, recipients[0].amount, { feeRate: resolvedFeeRate }
+        );
+      } else {
+        await this.loggedInAccount.wallet.sendMultiple(recipients, { feeRate: resolvedFeeRate });
+      }
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SEND_TOKENS_SUCCESS });
       chrome.runtime.sendMessage({ type: MESSAGE_TYPE.TRANSACTION_STATUS, success: true });
       this.main.transaction.refreshAfterSend();
@@ -485,9 +490,11 @@ export default class AccountController extends IController {
   * no signing/broadcast involved.
   * @param amount Amount to reserve inputs for, in satoshi.
   * @param feeRate satoshi/byte.
+  * @param numOutputs Worst-case number of outputs (destinations + change) the transaction will
+  *   have, for sizing the fee -- defaults to 2 (single destination + change).
   * @returns Estimated total fee in satoshi, or 0 if unavailable.
   */
-  private estimateTransactionFee = async (amount: number, feeRate: number): Promise<number> => {
+  private estimateTransactionFee = async (amount: number, feeRate: number, numOutputs?: number): Promise<number> => {
     if (!this.loggedInAccount || !this.loggedInAccount.wallet || !this.loggedInAccount.wallet.mjsWallet) {
       return 0;
     }
@@ -496,7 +503,7 @@ export default class AccountController extends IController {
       const utxos = await withTimeout(
         this.loggedInAccount.wallet.mjsWallet.getBitcoinjsUTXOs(), FEE_ESTIMATE_TIMEOUT_MS
       );
-      const { feeTotal } = selectTxs(utxos, amount, feeRate);
+      const { feeTotal } = selectTxs(utxos, amount, feeRate, numOutputs);
       return feeTotal;
     } catch (err) {
       console.error('estimateTransactionFee failed', err);
@@ -546,7 +553,7 @@ export default class AccountController extends IController {
           this.loginAccount(request.selectedWalletName).catch(reportError);
           break;
         case MESSAGE_TYPE.SEND_TOKENS:
-          this.sendTokens(request.receiverAddress, request.amount, request.feeRate);
+          this.sendTokens(request.recipients, request.feeRate);
           break;
         case MESSAGE_TYPE.LOGOUT:
           this.logoutAccount();

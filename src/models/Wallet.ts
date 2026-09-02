@@ -67,6 +67,20 @@ export default class Wallet implements ISigner {
     return await this.mjsWallet.send(to, amount * 1e8, { feeRate: options.feeRate });
   };
 
+  // @param recipients[].amount: (unit - whole MRX)
+  public sendMultiple = async (
+    recipients: { address: string; amount: number }[],
+    options: ISendTxOptions
+  ): Promise<Insight.ISendRawTxResult> => {
+    if (!this.mjsWallet) {
+      throw Error('Cannot send without wallet.');
+    }
+
+    // convert amount units from whole MRX => SATOSHI MRX
+    const outputs = recipients.map(({ address, amount }) => ({ address, amount: Math.round(amount * 1e8) }));
+    return await this.mjsWallet.send(outputs, undefined, { feeRate: options.feeRate });
+  };
+
   public sendTransaction = async (args: any[], feeRate?: number): Promise<any> => {
     if (!this.rpcProvider) {
       throw Error('Cannot sign transaction without RPC provider.');

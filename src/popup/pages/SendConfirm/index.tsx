@@ -20,9 +20,10 @@ class SendConfirm extends Component<WithStyles & IProps, {}> {
 
   public render() {
     const { classes, store: { sendStore } } = this.props;
-    const { senderAddress, receiverAddress, amount, token, gasLimit,
+    const { senderAddress, recipients, token, gasLimit,
     gasPrice, maxTxFee, sendState, errorMessage } = sendStore;
     const { SENDING, SENT } = SEND_STATE;
+    const multiple = recipients.length > 1;
 
     return (
       <div className={classes.root}>
@@ -31,9 +32,24 @@ class SendConfirm extends Component<WithStyles & IProps, {}> {
           <div className={classes.inputContainer}>
             <div className={classes.addressFieldsContainer}>
               <AddressField fieldName={'From'} address={senderAddress} {...this.props} />
-              <AddressField fieldName={'To'} address={receiverAddress} {...this.props} />
+              {recipients.map((recipient: any, index: number) => (
+                <AddressField
+                  key={index}
+                  fieldName={multiple ? `To #${index + 1}` : 'To'}
+                  address={recipient.address}
+                  {...this.props}
+                />
+              ))}
             </div>
-            <CostField fieldName={'Amount'} amount={amount} unit={token!.symbol} {...this.props} />
+            {recipients.map((recipient: any, index: number) => (
+              <CostField
+                key={index}
+                fieldName={multiple ? `Amount #${index + 1}` : 'Amount'}
+                amount={recipient.amount}
+                unit={token!.symbol}
+                {...this.props}
+              />
+            ))}
             {this.props.store.sendStore.token && this.props.store.sendStore.token.symbol !== 'MRX' && (
               <div>
                 <CostField fieldName={'Gas Limit'} amount={gasLimit} unit={'GAS'} {...this.props} />
@@ -82,7 +98,7 @@ const NetworkFeeField = observer(({ classes, store: { sendStore } }: any) => {
 });
 
 const TotalField = observer(({ classes, store: { sendStore } }: any) => {
-  const { token, amount, maxTxFee, networkFee, mrxUsdRate } = sendStore;
+  const { token, totalRecipientsAmount, maxTxFee, networkFee, mrxUsdRate } = sendStore;
   const isMrx = !!token && token.symbol === 'MRX';
 
   if (networkFee === undefined) {
@@ -90,7 +106,7 @@ const TotalField = observer(({ classes, store: { sendStore } }: any) => {
   }
 
   const networkFeeMrx = Number(networkFee) * 1e-8;
-  const totalMrx = isMrx ? Number(amount || 0) + networkFeeMrx : Number(maxTxFee || 0) + networkFeeMrx;
+  const totalMrx = isMrx ? Number(totalRecipientsAmount || 0) + networkFeeMrx : Number(maxTxFee || 0) + networkFeeMrx;
   const totalUsd = mrxUsdRate ? ` ($${(totalMrx * mrxUsdRate).toFixed(2)})` : '';
   const fieldName = isMrx ? 'Total (Amount + Fee)' : 'Total MRX Cost (Gas + Fee)';
   const totalLabel = `${totalMrx.toFixed(8)} MRX${totalUsd}`;

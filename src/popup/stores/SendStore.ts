@@ -13,12 +13,17 @@ import {
 
 const NETWORK_FEE_ESTIMATE_DEBOUNCE_MS = 200;
 
+export interface IRecipient {
+  address: string;
+  amount: number | string;
+}
+
+const emptyRecipient = (): IRecipient => ({ address: '', amount: '' });
+
 const INIT_VALUES = {
   tokens: [],
   senderAddress: undefined,
-  receiverAddress: '',
   token: undefined,
-  amount: '',
   maxAmount: undefined,
   maxMetrixSend: undefined,
   sendState: SEND_STATE.INITIAL,
@@ -38,9 +43,10 @@ const INIT_VALUES = {
 export default class SendStore {
   @observable public tokens: MRCToken[] = INIT_VALUES.tokens;
   @observable public senderAddress?: string = INIT_VALUES.senderAddress;
-  @observable public receiverAddress?: string = INIT_VALUES.receiverAddress;
+  // Multiple recipients are only meaningful for native MRX sends -- MRC20/MRC721 token sends
+  // are a single contract call and stay restricted to recipients[0] (see changeToken).
+  @observable public recipients: IRecipient[] = [emptyRecipient()];
   @observable public token?: MRCToken = INIT_VALUES.token;
-  @observable public amount: number | string = INIT_VALUES.amount;
   @observable public maxMetrixSend?: number = INIT_VALUES.maxMetrixSend;
   @observable public feeSpeed: FeeSpeed = INIT_VALUES.feeSpeed;
   @observable public feeRateTiers?: { slow: number; normal: number; fast: number } = INIT_VALUES.feeRateTiers;
@@ -73,16 +79,28 @@ export default class SendStore {
     }
     return this.feeRateTiers ? this.feeRateTiers[this.feeSpeed] : undefined;
   }
-  @computed public get receiverFieldError(): string | undefined {
+  /*
+  * Per-recipient-row {address, amount} validation errors, in the same order as `recipients`.
+  */
+  @computed public get recipientErrors(): { address?: string; amount?: string }[] {
     const currentNetwork = this.app.sessionStore.networks[this.app.sessionStore.networkIndex];
-    if (!currentNetwork) {
-      return undefined;
-    }
-    return isValidAddress(currentNetwork.network, this.receiverAddress)
-      ? undefined : 'Not a valid Metrix address';
+    return this.recipients.map((recipient) => ({
+      address: currentNetwork && !isValidAddress(currentNetwork.network, recipient.address)
+        ? 'Not a valid Metrix address' : undefined,
+      amount: this.maxAmount !== undefined && isValidAmount(Number(recipient.amount), this.maxAmount)
+        ? undefined : 'Not a valid amount',
+    }));
   }
+  @computed public get totalRecipientsAmount(): number {
+    return this.recipients.reduce((sum, recipient) => sum + (Number(recipient.amount) || 0), 0);
+  }
+  /*
+  * Aggregate error covering the combined total of every recipient row against the available
+  * balance -- a per-row amount can individually look valid while the sum still exceeds it.
+  */
   @computed public get amountFieldError(): string | undefined {
-    return this.maxAmount && isValidAmount(Number(this.amount), this.maxAmount) ? undefined : 'Not a valid amount';
+    return this.maxAmount !== undefined && isValidAmount(this.totalRecipientsAmount, this.maxAmount)
+      ? undefined : 'Total amount exceeds available balance';
   }
   @computed public get gasLimitFieldError(): string | undefined {
     return isValidGasLimit(this.gasLimit) ? undefined : 'Not a valid gas limit';
@@ -91,7 +109,9 @@ export default class SendStore {
     return isValidGasPrice(this.gasPrice) ? undefined : 'Not a valid gas price';
   }
   @computed public get buttonDisabled(): boolean {
-    return !this.senderAddress || !!this.receiverFieldError || !this.token || !!this.amountFieldError;
+    return !this.senderAddress || !this.token
+      || this.recipientErrors.some((error) => !!error.address || !!error.amount)
+      || !!this.amountFieldError;
   }
   @computed public get maxAmount(): number | undefined {
     if (this.token) {
@@ -104,6 +124,7 @@ export default class SendStore {
   }
 
   private app: AppStore;
+  private qrScanTargetIndex = 0;
 
   constructor(app: AppStore) {
     this.app = app;
@@ -141,8 +162,8 @@ export default class SendStore {
 
     reaction(
       () => [
-        this.amount, this.gasLimit, this.gasPrice, this.feeSpeed, this.isCustomFee, this.customFeeRate,
-        this.token && this.token.symbol,
+        this.recipients.map((recipient) => recipient.amount), this.gasLimit, this.gasPrice, this.feeSpeed,
+        this.isCustomFee, this.customFeeRate, this.token && this.token.symbol,
       ],
       () => this.scheduleNetworkFeeEstimate()
     );
@@ -158,6 +179,28 @@ export default class SendStore {
   public applyCustomFeeRate = (rate: number) => {
     this.customFeeRate = rate;
     this.isCustomFee = true;
+  };
+
+  @action
+  public addRecipient = () => {
+    this.recipients.push(emptyRecipient());
+  };
+
+  @action
+  public removeRecipient = (index: number) => {
+    if (this.recipients.length > 1) {
+      this.recipients.splice(index, 1);
+    }
+  };
+
+  @action
+  public changeRecipientAddress = (index: number, address: string) => {
+    this.recipients[index].address = address;
+  };
+
+  @action
+  public changeRecipientAmount = (index: number, amount: number | string) => {
+    this.recipients[index].amount = amount;
   };
 
   private feeEstimateTimer?: ReturnType<typeof setTimeout>;
@@ -178,11 +221,14 @@ export default class SendStore {
 
     const isMrx = this.token.symbol === 'MRX';
     const amountSatoshi = isMrx
-      ? Math.round(Number(this.amount || 0) * 1e8)
+      ? Math.round(this.totalRecipientsAmount * 1e8)
       : Math.round(Number(this.gasLimit || 0) * Number(this.gasPrice || 0));
+    // Worst case is every recipient's own output plus a change output; token sends are always
+    // a single contract-call output so the default (2) is correct there.
+    const numOutputs = isMrx ? this.recipients.length + 1 : undefined;
 
     chrome.runtime.sendMessage(
-      { type: MESSAGE_TYPE.ESTIMATE_TRANSACTION_FEE, amount: amountSatoshi, feeRate },
+      { type: MESSAGE_TYPE.ESTIMATE_TRANSACTION_FEE, amount: amountSatoshi, feeRate, numOutputs },
       (fee: number) => {
         if (chrome.runtime.lastError) {
           console.error('ESTIMATE_TRANSACTION_FEE failed:', chrome.runtime.lastError.message);
@@ -194,9 +240,10 @@ export default class SendStore {
   };
 
   @action
-  public scanQrFromPage = async () => {
+  public scanQrFromPage = async (index = 0) => {
     this.qrScanError = undefined;
     this.qrScanning = true;
+    this.qrScanTargetIndex = index;
 
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -236,6 +283,10 @@ export default class SendStore {
     const token = find(this.tokens, { symbol: tokenSymbol });
     if (token) {
       this.token = token;
+      // MRC20/MRC721 sends are a single contract call -- drop any extra recipient rows.
+      if (token.symbol !== 'MRX' && this.recipients.length > 1) {
+        this.recipients = [this.recipients[0]];
+      }
     }
   };
 
@@ -254,15 +305,14 @@ export default class SendStore {
     if (this.token.symbol === 'MRX') {
       chrome.runtime.sendMessage({
         type: MESSAGE_TYPE.SEND_TOKENS,
-        receiverAddress: this.receiverAddress,
-        amount: Number(this.amount),
+        recipients: this.recipients.map(({ address, amount }) => ({ address, amount: Number(amount) })),
         feeRate: this.effectiveFeeRate,
       });
     } else {
       chrome.runtime.sendMessage({
         type: MESSAGE_TYPE.SEND_MRC_TOKENS,
-        receiverAddress: this.receiverAddress,
-        amount: Number(this.amount),
+        receiverAddress: this.recipients[0].address,
+        amount: Number(this.recipients[0].amount),
         token: this.token,
         gasLimit: Number(this.gasLimit),
         gasPrice: Number(this.gasPrice),
@@ -288,7 +338,9 @@ export default class SendStore {
         this.maxMetrixSend = request.maxMetrixAmount / (10 ** metrixToken.decimals);
         break;
       case MESSAGE_TYPE.QR_CODE_SELECTED:
-        this.receiverAddress = request.address;
+        if (this.recipients[this.qrScanTargetIndex]) {
+          this.recipients[this.qrScanTargetIndex].address = request.address;
+        }
         break;
       default:
         break;

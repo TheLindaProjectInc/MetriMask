@@ -12,6 +12,7 @@ const MIN_IDLE_DETECTION_SECONDS = 15; // chrome.idle.setDetectionInterval enfor
 export default class SessionController extends IController {
   private sessionLogoutInterval = 600000; // in ms
   private darkMode = false;
+  private developerModeEnabled = false;
 
   constructor(main: MetriMaskController) {
     super('session', main);
@@ -29,6 +30,13 @@ export default class SessionController extends IController {
     chrome.storage.local.get([STORAGE.DARK_MODE], ({ darkMode }) => {
       if (darkMode !== undefined) {
         this.darkMode = darkMode;
+      }
+    });
+
+    // Check for developer mode preference in local storage
+    chrome.storage.local.get([STORAGE.DEVELOPER_MODE_ENABLED], ({ developerModeEnabled }) => {
+      if (developerModeEnabled !== undefined) {
+        this.developerModeEnabled = developerModeEnabled;
       }
     });
 
@@ -124,6 +132,16 @@ export default class SessionController extends IController {
           chrome.storage.local.set({ [STORAGE.DARK_MODE]: request.value },
             () => {
               this.darkMode = request.value;
+            }
+          );
+          break;
+        case MESSAGE_TYPE.GET_DEVELOPER_MODE_ENABLED:
+          sendResponse(this.developerModeEnabled);
+          break;
+        case MESSAGE_TYPE.SAVE_DEVELOPER_MODE_ENABLED:
+          chrome.storage.local.set({ [STORAGE.DEVELOPER_MODE_ENABLED]: request.value },
+            () => {
+              this.developerModeEnabled = request.value;
             }
           );
           break;

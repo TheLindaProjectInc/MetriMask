@@ -81,6 +81,21 @@ export default class Wallet implements ISigner {
     return await this.mjsWallet.send(outputs, undefined, { feeRate: options.feeRate });
   };
 
+  /*
+  * Deploys a contract. Bypasses WalletRPCProvider/rpcController entirely -- contractCreate
+  * isn't one of the "sendtocontract"/"callcontract" methods rawCall understands, and unlike
+  * those two, has no "amount"/sender-address concept (the sender is implicitly this wallet).
+  */
+  public deployContract = async (
+    bytecode: string, gasLimit: number, gasPrice: number, feeRate?: number
+  ): Promise<Insight.ISendRawTxResult> => {
+    if (!this.mjsWallet) {
+      throw Error('Cannot deploy a contract without wallet.');
+    }
+
+    return await this.mjsWallet.contractCreate(bytecode, { gasLimit, gasPrice, feeRate });
+  };
+
   public sendTransaction = async (args: any[], feeRate?: number): Promise<any> => {
     if (!this.rpcProvider) {
       throw Error('Cannot sign transaction without RPC provider.');

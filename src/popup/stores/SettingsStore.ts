@@ -8,6 +8,7 @@ const INIT_VALUES = {
   sessionLogoutInterval: 60000,
   darkMode: false,
   regtestEnabled: false,
+  developerModeEnabled: false,
   endpointOverrides: {}
 };
 
@@ -20,6 +21,7 @@ export default class SettingsStore {
     INIT_VALUES.sessionLogoutInterval;
   @observable public darkMode: boolean = INIT_VALUES.darkMode;
   @observable public regtestEnabled: boolean = INIT_VALUES.regtestEnabled;
+  @observable public developerModeEnabled: boolean = INIT_VALUES.developerModeEnabled;
   @observable public endpointOverrides: Record<string, string> = INIT_VALUES.endpointOverrides;
   @observable public endpointTestState: Record<string, 'testing' | 'success' | 'error' | 'reloading'> = {};
   @observable public endpointTestMessage: Record<string, string> = {};
@@ -48,6 +50,13 @@ export default class SettingsStore {
       { type: MESSAGE_TYPE.GET_REGTEST_ENABLED },
       (response: any) => {
         this.regtestEnabled = !!response;
+      }
+    );
+
+    chrome.runtime.sendMessage(
+      { type: MESSAGE_TYPE.GET_DEVELOPER_MODE_ENABLED },
+      (response: any) => {
+        this.developerModeEnabled = !!response;
       }
     );
 
@@ -89,6 +98,14 @@ export default class SettingsStore {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.SAVE_REGTEST_ENABLED,
       enabled: this.regtestEnabled
+    });
+  };
+
+  public changeDeveloperModeEnabled = (developerModeEnabled: boolean) => {
+    this.developerModeEnabled = developerModeEnabled;
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPE.SAVE_DEVELOPER_MODE_ENABLED,
+      value: this.developerModeEnabled
     });
   };
 

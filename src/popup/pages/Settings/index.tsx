@@ -40,6 +40,8 @@ class Settings extends Component<WithStyles & IProps, {}> {
             <NetworkEndpointField {...this.props} networkName={NETWORK_NAMES.TESTNET} />
             <RegtestToggleField {...this.props} />
             <RegtestEndpointField {...this.props} />
+            <DeveloperModeToggleField {...this.props} />
+            <DeployContractField {...this.props} />
           </div>
         </div>
       </div>
@@ -79,6 +81,34 @@ const RegtestToggleField: React.FC<any> = observer(({ classes, store: { settings
       />
     </div>
   </div>
+));
+
+const DeveloperModeToggleField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
+  <div className={classes.fieldContainer}>
+    <div className={classes.switchRow}>
+      <Heading name="Developer Mode" />
+      <Switch
+        color="primary"
+        checked={settingsStore.developerModeEnabled}
+        onChange={(event) => settingsStore.changeDeveloperModeEnabled(event.target.checked)}
+      />
+    </div>
+  </div>
+));
+
+const DeployContractField: React.FC<any> = observer(({ classes, store }: any) => (
+  store.settingsStore.developerModeEnabled ? (
+    <div className={classes.fieldContainer}>
+      <Button
+        color="primary"
+        variant="outlined"
+        fullWidth
+        onClick={() => store.routerStore.push('/deploy-contract')}
+      >
+        Deploy Contract
+      </Button>
+    </div>
+  ) : null
 ));
 
 const NetworkEndpointField: React.FC<any> = observer(({ classes, store: { settingsStore }, networkName }: any) => {

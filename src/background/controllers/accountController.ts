@@ -462,6 +462,33 @@ export default class AccountController extends IController {
     }
   };
 
+  /*
+  * Deploys a contract (Developer mode only, gated in the popup UI).
+  * @param bytecode Contract bytecode as a hex string.
+  * @param gasLimit Gas limit, in gas units.
+  * @param gasPrice Gas price, in satoshi/gas.
+  */
+  private deployContract = async (bytecode: string, gasLimit: number, gasPrice: number, feeRate?: number) => {
+    if (!this.loggedInAccount || !this.loggedInAccount.wallet || !this.loggedInAccount.wallet.mjsWallet) {
+      throw Error('Cannot deploy a contract with no wallet instance.');
+    }
+
+    try {
+      const resolvedFeeRate = feeRate || (await this.main.network.getFeeRateTiers()).normal; // satoshi/byte
+
+      const { txid } = await this.loggedInAccount.wallet.deployContract(
+        bytecode, gasLimit, gasPrice, resolvedFeeRate
+      );
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.DEPLOY_CONTRACT_SUCCESS, txid });
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.TRANSACTION_STATUS, success: true });
+      this.main.transaction.refreshAfterSend();
+    } catch (err: any) {
+      console.error(err);
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.DEPLOY_CONTRACT_FAILURE, error: err });
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.TRANSACTION_STATUS, success: false, message: err.message });
+    }
+  };
+
   /**
    * We update the maxMetrix amount under 2 scnearios
    * 1 - When wallet.info has been updated because a new balance has a new maxMetrixSend
@@ -554,6 +581,9 @@ export default class AccountController extends IController {
           break;
         case MESSAGE_TYPE.SEND_TOKENS:
           this.sendTokens(request.recipients, request.feeRate);
+          break;
+        case MESSAGE_TYPE.DEPLOY_CONTRACT:
+          this.deployContract(request.bytecode, request.gasLimit, request.gasPrice, request.feeRate);
           break;
         case MESSAGE_TYPE.LOGOUT:
           this.logoutAccount();

@@ -15,6 +15,7 @@ import AddTokenStore from './AddTokenStore';
 import AddMRC721TokenStore from './AddMRC721TokenStore';
 import MainContainerStore from './MainContainerStore';
 import ExternalRequestStore from './ExternalRequestStore';
+import DeployContractStore from './DeployContractStore';
 
 export default class AppStore {
   public routerStore: RouterStore;
@@ -33,6 +34,7 @@ export default class AppStore {
   public addMrc721TokenStore: AddMRC721TokenStore;
   public mainContainerStore: MainContainerStore;
   public externalRequestStore: ExternalRequestStore;
+  public deployContractStore: DeployContractStore;
 
   constructor() {
     this.routerStore = new RouterStore();
@@ -51,6 +53,7 @@ export default class AppStore {
     this.addMrc721TokenStore = new AddMRC721TokenStore(this);
     this.mainContainerStore = new MainContainerStore(this);
     this.externalRequestStore = new ExternalRequestStore(this);
+    this.deployContractStore = new DeployContractStore();
   }
 }
 

@@ -36,8 +36,8 @@ class Settings extends Component<WithStyles & IProps, {}> {
         <div className={classes.contentContainer}>
           <div className={classes.fieldsContainer}>
             <SliField {...this.props} />
-            <NetworkEndpointField {...this.props} networkName={NETWORK_NAMES.MAINNET} />
-            <NetworkEndpointField {...this.props} networkName={NETWORK_NAMES.TESTNET} />
+            <NetworkDataSourceField {...this.props} networkName={NETWORK_NAMES.MAINNET} />
+            <NetworkDataSourceField {...this.props} networkName={NETWORK_NAMES.TESTNET} />
             <RegtestToggleField {...this.props} />
             <RegtestEndpointField {...this.props} />
             <DeveloperModeToggleField {...this.props} />
@@ -161,9 +161,113 @@ const NetworkEndpointField: React.FC<any> = observer(({ classes, store: { settin
 
 const RegtestEndpointField: React.FC<any> = observer((props: any) => (
   props.store.settingsStore.regtestEnabled
-    ? <NetworkEndpointField {...props} networkName={NETWORK_NAMES.REGTEST} />
+    ? <NetworkDataSourceField {...props} networkName={NETWORK_NAMES.REGTEST} />
     : null
 ));
+
+/*
+ * Explorer URL (default) vs local-daemon-RPC data source for a network -- the RPC option is
+ * only surfaced in Developer mode, and is most useful for RegTest, which typically has no
+ * explorer running at all.
+ */
+const NetworkDataSourceField: React.FC<any> = observer(({ classes, store, networkName }: any) => {
+  const { settingsStore } = store;
+  const rpcEnabled = !!settingsStore.rpcConfigDrafts[networkName];
+
+  return (
+    <div>
+      {settingsStore.developerModeEnabled && (
+        <div className={classes.fieldContainer}>
+          <div className={classes.switchRow}>
+            <Heading name={`${networkName}: Use Local RPC`} />
+            <Switch
+              color="primary"
+              checked={rpcEnabled}
+              onChange={(event) => settingsStore.toggleRpcMode(networkName, event.target.checked)}
+            />
+          </div>
+        </div>
+      )}
+      {rpcEnabled
+        ? <RpcConfigField classes={classes} store={store} networkName={networkName} />
+        : <NetworkEndpointField classes={classes} store={store} networkName={networkName} />}
+    </div>
+  );
+});
+
+const RpcConfigField: React.FC<any> = observer(({ classes, store: { settingsStore }, networkName }: any) => {
+  const testState = settingsStore.endpointTestState[networkName];
+  const testMessage = settingsStore.endpointTestMessage[networkName];
+  const busy = testState === 'testing' || testState === 'reloading';
+  const draft = settingsStore.rpcConfigDrafts[networkName] || { host: '', port: '', user: '', password: '' };
+
+  return (
+    <div className={classes.fieldContainer}>
+      <Heading name={`${networkName} Local RPC (requires addressindex=1)`} />
+      <div className={classes.fieldTextContainer}>
+        <TextField
+          className={classes.selectOrTextField}
+          fullWidth
+          disabled={busy}
+          placeholder="Host (e.g. localhost)"
+          value={draft.host}
+          InputProps={{ className: classes.fieldTextOrInput, disableUnderline: true }}
+          onChange={(event) => settingsStore.updateRpcConfigDraft(networkName, 'host', event.target.value)}
+        />
+      </div>
+      <div className={classes.fieldTextContainer}>
+        <TextField
+          className={classes.selectOrTextField}
+          fullWidth
+          type="number"
+          disabled={busy}
+          placeholder="Port (e.g. 33831)"
+          value={draft.port}
+          InputProps={{ className: classes.fieldTextOrInput, disableUnderline: true }}
+          onChange={(event) => settingsStore.updateRpcConfigDraft(networkName, 'port', event.target.value)}
+        />
+      </div>
+      <div className={classes.fieldTextContainer}>
+        <TextField
+          className={classes.selectOrTextField}
+          fullWidth
+          disabled={busy}
+          placeholder="RPC user"
+          value={draft.user}
+          InputProps={{ className: classes.fieldTextOrInput, disableUnderline: true }}
+          onChange={(event) => settingsStore.updateRpcConfigDraft(networkName, 'user', event.target.value)}
+        />
+      </div>
+      <div className={classes.fieldTextContainer}>
+        <TextField
+          className={classes.selectOrTextField}
+          fullWidth
+          type="password"
+          disabled={busy}
+          placeholder="RPC password"
+          value={draft.password}
+          InputProps={{ className: classes.fieldTextOrInput, disableUnderline: true }}
+          onChange={(event) => settingsStore.updateRpcConfigDraft(networkName, 'password', event.target.value)}
+        />
+      </div>
+      <Button
+        color="primary"
+        className={classes.fieldButton}
+        disabled={busy}
+        onClick={() => settingsStore.testAndSaveRpcConfig(networkName)}
+      >
+        {testState === 'testing' ? 'Testing...' : 'Test & Save'}
+      </Button>
+      {testMessage && (
+        <Typography
+          className={(testState === 'success' || testState === 'reloading') ? classes.successText : classes.errorText}
+        >
+          {testMessage}
+        </Typography>
+      )}
+    </div>
+  );
+});
 
 const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any) => (
   <Typography className={classes.fieldHeading}>{name}</Typography>

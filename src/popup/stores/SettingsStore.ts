@@ -3,14 +3,25 @@ import { observable } from 'mobx';
 import AppStore from './AppStore';
 import { INTERVAL_NAMES, MESSAGE_TYPE } from '../../constants';
 import { SessionLogoutInterval } from '../../models/SessionLogoutInterval';
+import RpcInsightAdapter, { IRpcConnectionConfig } from '../../models/RpcInsightAdapter';
 
 const INIT_VALUES = {
   sessionLogoutInterval: 60000,
   darkMode: false,
   regtestEnabled: false,
   developerModeEnabled: false,
-  endpointOverrides: {}
+  endpointOverrides: {},
+  rpcConfigs: {},
 };
+
+export interface IRpcConfigDraft {
+  host: string;
+  port: string;
+  user: string;
+  password: string;
+}
+
+const emptyRpcConfigDraft = (): IRpcConfigDraft => ({ host: 'localhost', port: '', user: '', password: '' });
 
 const RECONNECT_MESSAGE_PAUSE_MS = 1500;
 
@@ -25,6 +36,10 @@ export default class SettingsStore {
   @observable public endpointOverrides: Record<string, string> = INIT_VALUES.endpointOverrides;
   @observable public endpointTestState: Record<string, 'testing' | 'success' | 'error' | 'reloading'> = {};
   @observable public endpointTestMessage: Record<string, string> = {};
+  // Networks with a saved local-RPC config -- presence here means the network uses local-RPC
+  // mode instead of the explorer API (Developer mode only, see saveRpcConfig).
+  @observable public rpcConfigs: Record<string, IRpcConnectionConfig> = INIT_VALUES.rpcConfigs;
+  @observable public rpcConfigDrafts: Record<string, IRpcConfigDraft> = {};
 
   public sliArray: SessionLogoutInterval[];
 
@@ -64,6 +79,19 @@ export default class SettingsStore {
       { type: MESSAGE_TYPE.GET_NETWORK_ENDPOINT_OVERRIDES },
       (response: any) => {
         this.endpointOverrides = response || {};
+      }
+    );
+
+    chrome.runtime.sendMessage(
+      { type: MESSAGE_TYPE.GET_NETWORK_RPC_CONFIGS },
+      (response: any) => {
+        this.rpcConfigs = response || {};
+        Object.keys(this.rpcConfigs).forEach((networkName) => {
+          const config = this.rpcConfigs[networkName];
+          this.rpcConfigDrafts[networkName] = {
+            host: config.host, port: String(config.port), user: config.user, password: config.password,
+          };
+        });
       }
     );
 
@@ -228,6 +256,99 @@ export default class SettingsStore {
       this.endpointTestMessage = {
         ...this.endpointTestMessage,
         [networkName]: 'Could not verify this provider (no valid response from api/info).'
+      };
+    }
+  };
+
+  /*
+   * Toggles local-RPC mode on/off for a network. Turning it off immediately clears and
+   * persists the change (falls back to the explorer). Turning it on just reveals the draft
+   * fields -- nothing is persisted until testAndSaveRpcConfig succeeds.
+   */
+  public toggleRpcMode = (networkName: string, enabled: boolean) => {
+    if (enabled) {
+      if (!this.rpcConfigDrafts[networkName]) {
+        this.rpcConfigDrafts = { ...this.rpcConfigDrafts, [networkName]: emptyRpcConfigDraft() };
+      } else {
+        // Force the fields to render even though nothing is saved yet.
+        this.rpcConfigDrafts = { ...this.rpcConfigDrafts, [networkName]: { ...this.rpcConfigDrafts[networkName] } };
+      }
+      return;
+    }
+
+    const updatedDrafts = { ...this.rpcConfigDrafts };
+    delete updatedDrafts[networkName];
+    this.rpcConfigDrafts = updatedDrafts;
+    this.clearEndpointStatus(networkName);
+
+    if (this.rpcConfigs[networkName]) {
+      const updatedConfigs = { ...this.rpcConfigs };
+      delete updatedConfigs[networkName];
+      this.rpcConfigs = updatedConfigs;
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.CLEAR_NETWORK_RPC_CONFIG, networkName });
+    }
+  };
+
+  public updateRpcConfigDraft = (networkName: string, field: keyof IRpcConfigDraft, value: string) => {
+    this.rpcConfigDrafts = {
+      ...this.rpcConfigDrafts,
+      [networkName]: { ...(this.rpcConfigDrafts[networkName] || emptyRpcConfigDraft()), [field]: value },
+    };
+    if (this.endpointTestState[networkName]) {
+      this.clearEndpointStatus(networkName);
+    }
+  };
+
+  /*
+   * Tests connectivity against the daemon's own getblockcount RPC before persisting -- same
+   * "don't save a config that can't actually connect" rationale as testAndSaveEndpointOverride.
+   * Requires addressindex=1 on the daemon (not checked here -- only reachability/auth is).
+   */
+  public testAndSaveRpcConfig = async (networkName: string) => {
+    const draft = this.rpcConfigDrafts[networkName];
+    const port = Number(draft && draft.port);
+
+    if (!draft || !draft.host.trim() || !port || !draft.user || !draft.password) {
+      this.endpointTestState = { ...this.endpointTestState, [networkName]: 'error' };
+      this.endpointTestMessage = {
+        ...this.endpointTestMessage,
+        [networkName]: 'Host, port, user, and password are all required.'
+      };
+      return;
+    }
+
+    const config: IRpcConnectionConfig = { host: draft.host.trim(), port, user: draft.user, password: draft.password };
+    this.endpointTestState = { ...this.endpointTestState, [networkName]: 'testing' };
+    this.endpointTestMessage = { ...this.endpointTestMessage, [networkName]: '' };
+
+    try {
+      await new RpcInsightAdapter(config).testConnection();
+
+      const isActiveNetwork = this.isActiveNetwork(networkName);
+      this.endpointTestState = { ...this.endpointTestState, [networkName]: 'success' };
+      this.endpointTestMessage = { ...this.endpointTestMessage, [networkName]: 'Connected successfully.' };
+
+      if (isActiveNetwork) {
+        await delay(RECONNECT_MESSAGE_PAUSE_MS);
+        this.endpointTestState = { ...this.endpointTestState, [networkName]: 'reloading' };
+        this.endpointTestMessage = {
+          ...this.endpointTestMessage,
+          [networkName]: 'Connected successfully. Reloading wallet...'
+        };
+        await delay(RECONNECT_MESSAGE_PAUSE_MS);
+      }
+
+      this.rpcConfigs = { ...this.rpcConfigs, [networkName]: config };
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.SAVE_NETWORK_RPC_CONFIG, networkName, config });
+
+      if (isActiveNetwork) {
+        this.clearEndpointStatus(networkName);
+      }
+    } catch (err: any) {
+      this.endpointTestState = { ...this.endpointTestState, [networkName]: 'error' };
+      this.endpointTestMessage = {
+        ...this.endpointTestMessage,
+        [networkName]: (err && err.message) || 'Could not connect to this RPC daemon.'
       };
     }
   };

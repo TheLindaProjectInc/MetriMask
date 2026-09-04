@@ -286,6 +286,7 @@ export default class RPCController extends IController {
       privateKeyHash,
       this.main.crypto.validPasswordHash,
       RPCController.SCRYPT_PARAMS_PRIV_KEY,
+      this.main.network.getInsightOverride(),
     );
   }
   /*

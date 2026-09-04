@@ -65,11 +65,108 @@ index 3e4ef64..681bbf4 100644
          });
      }
      /**
+diff --git a/node_modules/metrixjs-wallet/lib/Network.d.ts b/node_modules/metrixjs-wallet/lib/Network.d.ts
+index a5bd452..118dc01 100644
+--- a/node_modules/metrixjs-wallet/lib/Network.d.ts
++++ b/node_modules/metrixjs-wallet/lib/Network.d.ts
+@@ -27,14 +27,16 @@ export declare class Network {
+      * @param password
+      *
+      */
+-    fromMnemonic(mnemonic: string, password?: string): Wallet;
++    fromMnemonic(mnemonic: string, password?: string, insightOverride?: any): Wallet;
+     /**
+      * constructs a wallet from bip38 encrypted private key
+      * @param encrypted private key string
+      * @param passhprase password
+      * @param scryptParams scryptParams
+      */
+-    fromEncryptedPrivateKey(encrypted: string, passhprase: string, scryptParams?: IScryptParams): Wallet;
++    fromEncryptedPrivateKey(
++      encrypted: string, passhprase: string, scryptParams?: IScryptParams, insightOverride?: any
++    ): Wallet;
+     /**
+      * Restore 10 wallet addresses exported from METRIX's mobile clients. These
+      * wallets are 10 sequential addresses rooted at the HD-wallet path
+@@ -51,12 +53,12 @@ export declare class Network {
+      *
+      * @param wif
+      */
+-    fromWIF(wif: string): Wallet;
++    fromWIF(wif: string, insightOverride?: any): Wallet;
+     /**
+      * Alias for `fromWIF`
+      * @param wif
+      */
+-    fromPrivateKey(wif: string): Wallet;
++    fromPrivateKey(wif: string, insightOverride?: any): Wallet;
+     insight(): Insight;
+     hexToBase58(input: string): string;
+     base58ToHex(input: string): string;
+diff --git a/node_modules/metrixjs-wallet/lib/Network.js b/node_modules/metrixjs-wallet/lib/Network.js
+index 0191644..1693f74 100644
+--- a/node_modules/metrixjs-wallet/lib/Network.js
++++ b/node_modules/metrixjs-wallet/lib/Network.js
+@@ -75,7 +75,7 @@ class Network {
+      * @param password
+      *
+      */
+-    fromMnemonic(mnemonic, password) {
++    fromMnemonic(mnemonic, password, insightOverride) {
+         // if (bip39.validateMnemonic(mnemonic) == false) return false
+         const seedHex = bip39.mnemonicToSeedSync(mnemonic, password);
+         const hdNode = bip32.fromSeed(seedHex, this.info);
+@@ -84,7 +84,7 @@ class Network {
+             .deriveHardened(0)
+             .deriveHardened(0);
+         const keyPair = bitcoin.ECPair.fromWIF(account.toWIF(), this.info);
+-        return new Wallet_1.Wallet(keyPair, this.info);
++        return new Wallet_1.Wallet(keyPair, this.info, insightOverride);
+     }
+     /**
+      * constructs a wallet from bip38 encrypted private key
+@@ -92,10 +92,10 @@ class Network {
+      * @param passhprase password
+      * @param scryptParams scryptParams
+      */
+-    fromEncryptedPrivateKey(encrypted, passhprase, scryptParams = scrypt_1.params.bip38) {
++    fromEncryptedPrivateKey(encrypted, passhprase, scryptParams = scrypt_1.params.bip38, insightOverride) {
+         const { privateKey, compressed } = bip38.decrypt(encrypted, passhprase, undefined, scryptParams);
+         const decoded = wifEncoder.encode(this.info.wif, privateKey, compressed);
+-        return this.fromWIF(decoded);
++        return this.fromWIF(decoded, insightOverride);
+     }
+     /**
+      * Restore 10 wallet addresses exported from METRIX's mobile clients. These
+@@ -124,19 +124,19 @@ class Network {
+      *
+      * @param wif
+      */
+-    fromWIF(wif) {
++    fromWIF(wif, insightOverride) {
+         if (!index_1.validatePrivateKey(wif)) {
+             throw new Error("wif is invalid, it does not satisfy ECDSA");
+         }
+         const keyPair = bitcoin.ECPair.fromWIF(wif, this.info);
+-        return new Wallet_1.Wallet(keyPair, this.info);
++        return new Wallet_1.Wallet(keyPair, this.info, insightOverride);
+     }
+     /**
+      * Alias for `fromWIF`
+      * @param wif
+      */
+-    fromPrivateKey(wif) {
+-        return this.fromWIF(wif);
++    fromPrivateKey(wif, insightOverride) {
++        return this.fromWIF(wif, insightOverride);
+     }
+     insight() {
+         return Insight_1.Insight.forNetwork(this.info);
 diff --git a/node_modules/metrixjs-wallet/lib/Wallet.d.ts b/node_modules/metrixjs-wallet/lib/Wallet.d.ts
-index 713da02..4224bd4 100644
+index 713da02..6ed219d 100644
 --- a/node_modules/metrixjs-wallet/lib/Wallet.d.ts
 +++ b/node_modules/metrixjs-wallet/lib/Wallet.d.ts
-@@ -2,7 +2,7 @@ import { ECPairInterface } from 'bitcoinjs-lib';
+@@ -2,14 +2,19 @@ import { ECPairInterface } from 'bitcoinjs-lib';
  import { BIP32Interface } from "bip32";
  import { INetworkInfo } from "./Network";
  import { Insight } from "./Insight";
@@ -78,7 +175,20 @@ index 713da02..4224bd4 100644
  import { IScryptParams } from "./scrypt";
  export declare class Wallet {
      keyPair: ECPairInterface;
-@@ -35,13 +35,14 @@ export declare class Wallet {
+     network: INetworkInfo;
+     address: string;
+     private insight;
+-    constructor(keyPair: ECPairInterface, network: INetworkInfo);
++    /**
++     * @param insightOverride Alternate data source implementing the same methods as `Insight`
++     *   (e.g. a local-daemon-RPC-backed adapter) -- falls back to `Insight.forNetwork(network)`
++     *   when omitted, exactly as before.
++     */
++    constructor(keyPair: ECPairInterface, network: INetworkInfo, insightOverride?: any);
+     toWIF(): string;
+     /**
+      * Get basic information about the wallet address.
+@@ -35,13 +40,14 @@ export declare class Wallet {
      /**
       * Generate and sign a payment transaction.
       *
@@ -96,7 +206,7 @@ index 713da02..4224bd4 100644
      /**
       * Estimate the maximum value that could be sent from this wallet address.
       *
-@@ -56,12 +57,13 @@ export declare class Wallet {
+@@ -56,12 +62,13 @@ export declare class Wallet {
       * using the wallet's private key, and the raw transaction submitted to a
       * remote API (without revealing the wallet's secret).
       *
@@ -114,10 +224,10 @@ index 713da02..4224bd4 100644
       * Submit a signed raw transaction to the network.
       *
 diff --git a/node_modules/metrixjs-wallet/lib/Wallet.js b/node_modules/metrixjs-wallet/lib/Wallet.js
-index b2b34f4..45590e7 100644
+index b2b34f4..7d92be5 100644
 --- a/node_modules/metrixjs-wallet/lib/Wallet.js
 +++ b/node_modules/metrixjs-wallet/lib/Wallet.js
-@@ -40,12 +40,13 @@ const bip32_1 = __importDefault(require("bip32"));
+@@ -40,19 +40,20 @@ const bip32_1 = __importDefault(require("bip32"));
  const Insight_1 = require("./Insight");
  const tx_1 = require("./tx");
  const scrypt_1 = require("./scrypt");
@@ -131,7 +241,16 @@ index b2b34f4..45590e7 100644
 +const defaultTxFeePerByte = Math.ceil((10 * 1e8) / 1000);
  const bip32 = bip32_1.default(ecc);
  class Wallet {
-     constructor(keyPair, network) {
+-    constructor(keyPair, network) {
++    constructor(keyPair, network, insightOverride) {
+         this.keyPair = keyPair;
+         this.network = network;
+         this.address = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: network }).address;
+-        this.insight = Insight_1.Insight.forNetwork(network);
++        this.insight = insightOverride || Insight_1.Insight.forNetwork(network);
+     }
+     toWIF() {
+         return this.keyPair.toWIF();
 @@ -231,7 +232,24 @@ class Wallet {
              // could cause overlapping UXTOs to be used.
              // FIXME: make the two compatible...

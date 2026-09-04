@@ -169,7 +169,7 @@ export default class AccountController extends IController {
     assert(mnemonic, 'invalid mnemonic');
 
     const network = this.main.network.network;
-    const wallet = network.fromMnemonic(mnemonic);
+    const wallet = network.fromMnemonic(mnemonic, undefined, this.main.network.getInsightOverride());
     const privateKeyHash = this.getPrivateKeyHash(wallet);
 
     // Validate that we don't already have the wallet in our accountList
@@ -193,7 +193,7 @@ export default class AccountController extends IController {
 
     // recover wallet and privateKeyHash
     const network = this.main.network.network;
-    const wallet = network.fromWIF(privateKey);
+    const wallet = network.fromWIF(privateKey, this.main.network.getInsightOverride());
     const privateKeyHash = this.getPrivateKeyHash(wallet);
 
     // validate that we don't already have the wallet in our accountList accountList
@@ -345,6 +345,7 @@ export default class AccountController extends IController {
       privateKeyHash,
       this.main.crypto.validPasswordHash,
       AccountController.SCRYPT_PARAMS_PRIV_KEY,
+      this.main.network.getInsightOverride(),
     );
   }
 

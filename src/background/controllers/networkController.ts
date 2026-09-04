@@ -5,6 +5,7 @@ import MetriMaskController from '.';
 import IController from './iController';
 import { MESSAGE_TYPE, STORAGE, NETWORK_NAMES } from '../../constants';
 import QryNetwork from '../../models/QryNetwork';
+import RpcInsightAdapter, { IRpcConnectionConfig } from '../../models/RpcInsightAdapter';
 import { withTimeout } from '../../utils';
 
 const FEE_ESTIMATE_TIMEOUT_MS = 5000;
@@ -76,14 +77,18 @@ export default class NetworkController extends IController {
   private networkIndex = 0;
   private regtestEnabled = false;
   private endpointOverrides: Record<string, string> = {};
+  private rpcConfigs: Record<string, IRpcConnectionConfig> = {};
 
   constructor(main: MetriMaskController) {
     super('network', main);
 
     chrome.runtime.onMessage.addListener(this.handleMessage);
     chrome.storage.local.get(
-      [STORAGE.NETWORK_INDEX, STORAGE.REGTEST_ENABLED, STORAGE.NETWORK_ENDPOINT_OVERRIDES],
-      ({ networkIndex, regtestEnabled, networkEndpointOverrides }: any) => {
+      [
+        STORAGE.NETWORK_INDEX, STORAGE.REGTEST_ENABLED, STORAGE.NETWORK_ENDPOINT_OVERRIDES,
+        STORAGE.NETWORK_RPC_CONFIGS,
+      ],
+      ({ networkIndex, regtestEnabled, networkEndpointOverrides, networkRpcConfigs }: any) => {
         if (regtestEnabled !== undefined) {
           this.regtestEnabled = regtestEnabled;
         }
@@ -93,6 +98,11 @@ export default class NetworkController extends IController {
           Object.keys(this.endpointOverrides).forEach(
             (name) => this.applyOverride(name, this.endpointOverrides[name])
           );
+        }
+
+        if (networkRpcConfigs !== undefined) {
+          this.rpcConfigs = networkRpcConfigs;
+          Object.keys(this.rpcConfigs).forEach((name) => this.applyRpcConfig(name, this.rpcConfigs[name]));
         }
 
         if (networkIndex !== undefined) {
@@ -157,9 +167,13 @@ export default class NetworkController extends IController {
     let baseRate = DEFAULT_FEE_RATE_PER_BYTE;
 
     try {
+      const insightOverride = this.getInsightOverride();
       const networkInfo = NetworkController.NETWORKS[this.networkIndex].network.info;
       const estimated = await withTimeout(
-        Insight.forNetwork(networkInfo).estimateFeePerByte(), FEE_ESTIMATE_TIMEOUT_MS
+        insightOverride
+          ? insightOverride.estimateFeePerByte()
+          : Insight.forNetwork(networkInfo).estimateFeePerByte(),
+        FEE_ESTIMATE_TIMEOUT_MS
       );
       if (estimated && estimated > 0) {
         baseRate = estimated;
@@ -184,6 +198,53 @@ export default class NetworkController extends IController {
     if (!enabled && this.networkIndex === 2) {
       this.changeNetwork(0);
     }
+  };
+
+  /*
+  * Switches a network to (or, with `config: undefined`, off) local-daemon-RPC mode -- an
+  * alternative to the explorer/insight-api data source, most useful for RegTest which
+  * typically has no explorer running. Requires the daemon to run with `addressindex=1`.
+  * Reconnects immediately only if the edited network is the one currently active.
+  */
+  public saveRpcConfig = (networkName: string, config?: IRpcConnectionConfig) => {
+    const index = NetworkController.NETWORKS.findIndex((n) => n.name === networkName);
+    if (index === -1) {
+      return;
+    }
+
+    if (config) {
+      this.rpcConfigs[networkName] = config;
+      this.applyRpcConfig(networkName, config);
+    } else {
+      delete this.rpcConfigs[networkName];
+      this.applyRpcConfig(networkName, undefined);
+    }
+
+    chrome.storage.local.set({ [STORAGE.NETWORK_RPC_CONFIGS]: this.rpcConfigs });
+
+    if (index === this.networkIndex) {
+      this.main.account.logoutNetwork();
+    }
+  };
+
+  /*
+  * Returns an Insight-compatible adapter backed by the active network's configured local
+  * daemon, or undefined when the active network is in the (default) explorer mode.
+  */
+  public getInsightOverride = (): RpcInsightAdapter | undefined => {
+    const active = NetworkController.NETWORKS[this.networkIndex];
+    return active.dataSourceMode === 'rpc' && active.rpcConfig
+      ? new RpcInsightAdapter(active.rpcConfig)
+      : undefined;
+  };
+
+  private applyRpcConfig = (networkName: string, config?: IRpcConnectionConfig) => {
+    const index = NetworkController.NETWORKS.findIndex((n) => n.name === networkName);
+    if (index === -1) {
+      return;
+    }
+    NetworkController.NETWORKS[index].dataSourceMode = config ? 'rpc' : 'explorer';
+    NetworkController.NETWORKS[index].rpcConfig = config;
   };
 
   private applyOverride = (networkName: string, url: string) => {
@@ -230,6 +291,15 @@ export default class NetworkController extends IController {
           break;
         case MESSAGE_TYPE.SAVE_NETWORK_ENDPOINT_OVERRIDE:
           this.saveEndpointOverride(request.networkName, request.url);
+          break;
+        case MESSAGE_TYPE.GET_NETWORK_RPC_CONFIGS:
+          sendResponse(this.rpcConfigs);
+          break;
+        case MESSAGE_TYPE.SAVE_NETWORK_RPC_CONFIG:
+          this.saveRpcConfig(request.networkName, request.config);
+          break;
+        case MESSAGE_TYPE.CLEAR_NETWORK_RPC_CONFIG:
+          this.saveRpcConfig(request.networkName, undefined);
           break;
         case MESSAGE_TYPE.GET_REGTEST_ENABLED:
           sendResponse(this.regtestEnabled);

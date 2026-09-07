@@ -171,7 +171,7 @@ const RegtestEndpointField: React.FC<any> = observer((props: any) => (
  */
 const NetworkDataSourceField: React.FC<any> = observer(({ classes, store, networkName }: any) => {
   const { settingsStore } = store;
-  const rpcEnabled = !!settingsStore.rpcConfigDrafts[networkName];
+  const rpcEnabled = settingsStore.developerModeEnabled && !!settingsStore.rpcConfigDrafts[networkName];
 
   return (
     <div>

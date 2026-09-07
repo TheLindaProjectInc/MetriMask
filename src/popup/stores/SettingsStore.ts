@@ -142,6 +142,14 @@ export default class SettingsStore {
       type: MESSAGE_TYPE.SAVE_DEVELOPER_MODE_ENABLED,
       value: this.developerModeEnabled
     });
+
+    // Local-RPC mode is a developer-only feature -- turning Developer mode off should reset
+    // any network still in that mode back to the explorer, not just hide the toggle that
+    // controls it (which previously left the RPC fields visible with no way to get back to
+    // them without re-enabling Developer mode first).
+    if (!developerModeEnabled) {
+      Object.keys(this.rpcConfigDrafts).forEach((networkName) => this.toggleRpcMode(networkName, false));
+    }
   };
 
   /*

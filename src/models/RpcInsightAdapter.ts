@@ -33,7 +33,40 @@ export interface IRpcConnectionConfig {
 
 // How many of the most recent blocks to scan for an address's transaction history, in the
 // absence of any address index. Bounds worst-case RPC round-trips per getTransactions() call.
-const RECENT_BLOCKS_TO_SCAN = 500;
+// Kept small deliberately: this was originally 500, tested only against a local RegTest chain
+// with near-zero latency -- against a real/remote daemon (confirmed live: a switch to TestNet
+// produced 2000+ sequential requests, some individual requests taking well over a minute), that
+// was never going to finish in reasonable time even with the concurrency fix below.
+const RECENT_BLOCKS_TO_SCAN = 20;
+
+// How many mempool transactions to inspect for the "unconfirmed incoming" estimate. A busy
+// public network's mempool can hold thousands of transactions; scanning all of them every time
+// this is called is the same kind of unbounded cost as the block scan above.
+const MAX_MEMPOOL_TXS_TO_SCAN = 50;
+
+// Concurrency cap for the batch helper below -- bounds how many requests are in flight at once
+// (so a slow/remote daemon doesn't get hammered with hundreds of simultaneous requests) while
+// still running well ahead of one-at-a-time.
+const SCAN_CONCURRENCY = 5;
+
+/*
+* Maps over `items` with at most `limit` calls to `fn` in flight at once, preserving input
+* order in the result. Sequentially awaiting one RPC call at a time (the original approach here)
+* turns a few hundred blocks/mempool entries into a few hundred round-trips of pure network
+* latency; this cuts that down to roughly items.length / limit "rounds" instead.
+*/
+const mapWithConcurrency = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  const workers = new Array(Math.min(limit, items.length)).fill(null).map(async () => {
+    while (nextIndex < items.length) {
+      const current = nextIndex++;
+      results[current] = await fn(items[current]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+};
 
 // scantxoutset only allows one scan in flight at a time -- system-wide on the daemon, not
 // per-connection. A second concurrent call errors with "Scan already in progress" (returned as
@@ -207,18 +240,23 @@ export default class RpcInsightAdapter {
   */
   private getUnconfirmedIncomingSatoshi = async (address: string): Promise<number> => {
     const mempoolTxids: string[] = await this.rpcCall('getrawmempool', [false]);
-    let total = 0;
-    for (const txid of mempoolTxids) {
-      try {
-        const tx = await this.rpcCall('getrawtransaction', [txid, 1]); // mempool tx -- no blockhash needed
-        total += (tx.vout || [])
-          .filter((output: any) => this.outputAddresses(output).includes(address))
-          .reduce((sum: number, output: any) => sum + Math.round(output.value * 1e8), 0);
-      } catch (err) {
-        // Raced with the tx confirming/leaving the mempool -- ignore and move on.
+    const amounts = await mapWithConcurrency<string, number>(
+      mempoolTxids.slice(0, MAX_MEMPOOL_TXS_TO_SCAN),
+      SCAN_CONCURRENCY,
+      async (txid): Promise<number> => {
+        try {
+          const tx = await this.rpcCall('getrawtransaction', [txid, 1]); // mempool tx -- no blockhash needed
+          const vout: any[] = tx.vout || [];
+          return vout
+            .filter((output: any) => this.outputAddresses(output).includes(address))
+            .reduce((sum: number, output: any) => sum + Math.round(output.value * 1e8), 0);
+        } catch (err) {
+          // Raced with the tx confirming/leaving the mempool -- ignore and move on.
+          return 0;
+        }
       }
-    }
-    return total;
+    );
+    return amounts.reduce((sum, amount) => sum + amount, 0);
   };
 
   /*
@@ -228,24 +266,31 @@ export default class RpcInsightAdapter {
   private findRecentTransactionsForAddress = async (
     address: string
   ): Promise<{ txid: string; blockhash: string }[]> => {
-    const tipHeight = await this.rpcCall('getblockcount', []);
+    const tipHeight: number = await this.rpcCall('getblockcount', []);
     const startHeight = Math.max(0, tipHeight - RECENT_BLOCKS_TO_SCAN + 1);
-    const matches: { txid: string; blockhash: string }[] = [];
-
+    const heights: number[] = [];
     for (let height = tipHeight; height >= startHeight; height--) {
+      heights.push(height);
+    }
+
+    const blocks = await mapWithConcurrency(heights, SCAN_CONCURRENCY, async (height) => {
       const blockhash = await this.rpcCall('getblockhash', [height]);
-      const block = await this.rpcCall('getblock', [blockhash, 2]);
+      return this.rpcCall('getblock', [blockhash, 2]);
+    });
+
+    const matches: { txid: string; blockhash: string }[] = [];
+    for (const block of blocks) { // Still newest-first: heights was built descending, order preserved.
       for (const tx of block.tx || []) {
         const touchesAddress = (tx.vout || []).some(
           (output: any) => this.outputAddresses(output).includes(address)
         );
         if (touchesAddress) {
-          matches.push({ txid: tx.txid, blockhash });
+          matches.push({ txid: tx.txid, blockhash: block.hash });
         }
       }
     }
 
-    return matches; // Newest-first, since height counts down.
+    return matches;
   };
 
   /*

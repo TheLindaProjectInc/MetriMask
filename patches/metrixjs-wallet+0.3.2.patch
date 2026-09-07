@@ -104,10 +104,28 @@ index a5bd452..118dc01 100644
      hexToBase58(input: string): string;
      base58ToHex(input: string): string;
 diff --git a/node_modules/metrixjs-wallet/lib/Network.js b/node_modules/metrixjs-wallet/lib/Network.js
-index 0191644..1693f74 100644
+index 0191644..9547c8c 100644
 --- a/node_modules/metrixjs-wallet/lib/Network.js
 +++ b/node_modules/metrixjs-wallet/lib/Network.js
-@@ -75,7 +75,7 @@ class Network {
+@@ -57,10 +57,14 @@ exports.networksInfo = {
+     [constants_1.NetworkNames.REGTEST]: {
+         name: constants_1.NetworkNames.REGTEST,
+         messagePrefix: '\x17Metrix Signed Message:\n',
+-        bech32: "tb",
++        // pubKeyHash/scriptHash/bech32 verified live against a real regtest daemon (via
++        // validateaddress/createmultisig/getnewaddress on its own generated addresses) -- the
++        // previous values (120/110/"tb") didn't match, so every RegTest address MetriMask
++        // derived was rejected as invalid by an actual node. wif was already correct.
++        bech32: "mcrt",
+         bip32: { public: 70617039, private: 70615956 },
+-        pubKeyHash: 120,
+-        scriptHash: 110,
++        pubKeyHash: 112,
++        scriptHash: 187,
+         wif: 239,
+     },
+ };
+@@ -75,7 +79,7 @@ class Network {
       * @param password
       *
       */
@@ -116,7 +134,7 @@ index 0191644..1693f74 100644
          // if (bip39.validateMnemonic(mnemonic) == false) return false
          const seedHex = bip39.mnemonicToSeedSync(mnemonic, password);
          const hdNode = bip32.fromSeed(seedHex, this.info);
-@@ -84,7 +84,7 @@ class Network {
+@@ -84,7 +88,7 @@ class Network {
              .deriveHardened(0)
              .deriveHardened(0);
          const keyPair = bitcoin.ECPair.fromWIF(account.toWIF(), this.info);
@@ -125,7 +143,7 @@ index 0191644..1693f74 100644
      }
      /**
       * constructs a wallet from bip38 encrypted private key
-@@ -92,10 +92,10 @@ class Network {
+@@ -92,10 +96,10 @@ class Network {
       * @param passhprase password
       * @param scryptParams scryptParams
       */
@@ -138,7 +156,7 @@ index 0191644..1693f74 100644
      }
      /**
       * Restore 10 wallet addresses exported from METRIX's mobile clients. These
-@@ -124,19 +124,19 @@ class Network {
+@@ -124,19 +128,19 @@ class Network {
       *
       * @param wif
       */

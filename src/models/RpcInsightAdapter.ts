@@ -6,16 +6,21 @@ import { Insight } from 'metrixjs-wallet';
 * which typically has no explorer running at all.
 *
 * Implements the same methods `Wallet` calls on `this.insight` (getInfo, listUTXOs, sendRawTx,
-* contractCall, estimateFeePerByte, getTransactions, getTransactionInfo), mapped onto the
-* daemon's "address index" RPCs (getaddressbalance/getaddressutxos/getaddresstxids/etc, the same
-* Bitcoin-Core-derived extension Qtum-family chains including Metrix use) -- these require the
-* daemon to be running with `addressindex=1`.
+* contractCall, estimateFeePerByte, getTransactions, getTransactionInfo).
 *
-* This is a best-effort implementation based on the standard Bitcoin-Core/Qtum addressindex RPC
-* conventions: exact method names and response shapes have NOT been verified against a live
-* metrixd node (no local daemon was available while writing this). Treat method names, param
-* shapes, and unit conversions below as the first thing to check if something doesn't work
-* against a real node.
+* IMPORTANT -- this was rewritten after testing against a real regtest daemon (verified via curl,
+* not assumed): the daemon has neither the Bitcoin-Core "addressindex" extension
+* (getaddressbalance/getaddressutxos/getaddresstxids/getaddressmempool all returned "Method not
+* found") nor -txindex (getrawtransaction fails for any confirmed txid unless you already know
+* its blockhash). So, unlike a typical Insight-style explorer, there is no cheap way to look up
+* "every transaction for this address" here. This adapter instead uses:
+*   - `scantxoutset` (a full UTXO-set scan, no index required) for balance and UTXOs.
+*   - a bounded scan of the most recent blocks for transaction history, since there is no
+*     address index to query directly. This only finds RECENT activity, and only transactions
+*     where the address appears in an output (vout) -- resolving vin (spending) addresses would
+*     need to look up arbitrary historical transactions, which isn't possible without an index,
+*     so "direction" (sent vs received) is not reliably accurate for older/purely-outgoing
+*     transactions. Good enough for local dev/RegTest testing; not a full explorer replacement.
 */
 
 export interface IRpcConnectionConfig {
@@ -25,6 +30,10 @@ export interface IRpcConnectionConfig {
   password: string;
   protocol?: 'http' | 'https'; // default: http
 }
+
+// How many of the most recent blocks to scan for an address's transaction history, in the
+// absence of any address index. Bounds worst-case RPC round-trips per getTransactions() call.
+const RECENT_BLOCKS_TO_SCAN = 500;
 
 export default class RpcInsightAdapter {
   private config: IRpcConnectionConfig;
@@ -43,55 +52,59 @@ export default class RpcInsightAdapter {
   };
 
   public getInfo = async (address: string): Promise<Insight.IGetInfo> => {
-    const [balance, mempool, txids] = await Promise.all([
-      this.rpcCall('getaddressbalance', [{ addresses: [address] }]),
-      this.rpcCall('getaddressmempool', [{ addresses: [address] }]).catch(() => []),
-      this.rpcCall('getaddresstxids', [{ addresses: [address] }]),
+    const [scan, unconfirmedSatoshi] = await Promise.all([
+      this.scanUtxoSet(address),
+      this.getUnconfirmedIncomingSatoshi(address).catch(() => 0),
     ]);
 
-    const unconfirmedBalanceSat = (mempool || []).reduce(
-      (sum: number, delta: any) => sum + (Number(delta.satoshis) || 0), 0
-    );
+    const balanceSat = Math.round(scan.total_amount * 1e8);
 
     return {
       addrStr: address,
-      balance: balance.balance / 1e8,
-      balanceSat: balance.balance,
-      totalReceived: balance.received / 1e8,
-      totalReceivedSat: balance.received,
-      totalSet: (balance.received - balance.balance) / 1e8,
-      totalSentSat: balance.received - balance.balance,
-      unconfirmedBalance: unconfirmedBalanceSat / 1e8,
-      unconfirmedBalanceSat,
-      unconfirmedTxApperances: (mempool || []).length,
-      txApperances: (txids || []).length,
-      transactions: txids || [],
+      balance: scan.total_amount,
+      balanceSat,
+      // Not resolvable without an address/tx index -- see the module comment above.
+      totalReceived: scan.total_amount,
+      totalReceivedSat: balanceSat,
+      totalSet: 0,
+      totalSentSat: 0,
+      unconfirmedBalance: unconfirmedSatoshi / 1e8,
+      unconfirmedBalanceSat: unconfirmedSatoshi,
+      unconfirmedTxApperances: unconfirmedSatoshi > 0 ? 1 : 0,
+      txApperances: 0,
+      transactions: [],
     };
   };
 
   public listUTXOs = async (address: string): Promise<Insight.IUTXO[]> => {
-    const [utxos, tipHeight] = await Promise.all([
-      this.rpcCall('getaddressutxos', [{ addresses: [address] }]),
-      this.rpcCall('getblockcount', []),
-    ]);
+    const scan = await this.scanUtxoSet(address);
 
-    const utxoPromises: Promise<Insight.IUTXO>[] = (utxos || []).map(async (utxo: any) => {
-      // The Insight-style consumer (metrixjs-wallet's tx builder) needs the full raw transaction
-      // hex to build a PSBT nonWitnessUtxo input -- fetch it per-UTXO.
-      const rawtx = await this.rpcCall('getrawtransaction', [utxo.txid, 0]);
+    const utxoPromises: Promise<Insight.IUTXO>[] = (scan.unspents || []).map(async (utxo: any) => {
+      // No -txindex, so getrawtransaction needs an explicit blockhash for a confirmed tx.
+      // Verbosity 1 (not 0) so the coinbase/coinstake marker on vin[0] is available too --
+      // scantxoutset doesn't report stake status itself, and getting this wrong matters: a
+      // freshly-mined block's reward is immature (verified against a real node: getwalletinfo
+      // showed a large immature_balance from 5 just-mined blocks) and metrixjs-wallet's own
+      // maturity filter (getBitcoinjsUTXOs) only enforces the confirmations>=960 floor for
+      // isStake UTXOs -- mislabeling one as isStake:false would offer it as spendable
+      // immediately, and the network would reject the resulting broadcast.
+      const blockhash = await this.rpcCall('getblockhash', [utxo.height]);
+      const verboseTx = await this.rpcCall('getrawtransaction', [utxo.txid, 1, blockhash]);
+      const isStake = !!(verboseTx.vin && verboseTx.vin[0] && verboseTx.vin[0].coinbase);
       return {
-        address: utxo.address,
+        address,
         txid: utxo.txid,
-        vout: utxo.outputIndex,
-        scriptPubKey: utxo.script,
-        amount: utxo.satoshis / 1e8,
-        satoshis: utxo.satoshis,
-        isStake: !!utxo.isStake,
+        vout: utxo.vout,
+        scriptPubKey: utxo.scriptPubKey,
+        amount: utxo.amount,
+        satoshis: Math.round(utxo.amount * 1e8),
+        isStake,
         height: utxo.height,
-        confirmations: utxo.height > 0 ? Math.max(0, tipHeight - utxo.height + 1) : 0,
-        rawtx,
+        confirmations: Math.max(0, scan.height - utxo.height + 1),
+        rawtx: verboseTx.hex,
       };
     });
+
     return Promise.all(utxoPromises);
   };
 
@@ -102,7 +115,8 @@ export default class RpcInsightAdapter {
 
   public contractCall = async (address: string, encodedData: string): Promise<Insight.IContractCall> => {
     // The daemon's own `callcontract` RPC already returns {address, executionResult} --
-    // the same shape Insight's REST API itself is presumably just proxying.
+    // the same shape Insight's REST API itself is presumably just proxying. Not verified
+    // against a real deployed contract (none was available while writing this).
     return this.rpcCall('callcontract', [address, encodedData]);
   };
 
@@ -121,31 +135,89 @@ export default class RpcInsightAdapter {
   };
 
   public getTransactionInfo = async (id: string): Promise<Insight.IRawTransactionInfo> => {
+    // No index to look up an arbitrary confirmed txid's blockhash -- works only for a mempool
+    // transaction. Unused by this app's own UI (see transactionController.ts), kept for
+    // interface parity.
     return this.buildTransactionInfo(id);
   };
 
   public getTransactions = async (address: string, pageNum = 0): Promise<Insight.IRawTransactions> => {
     const pageSize = 10;
-    const allTxids: string[] = await this.rpcCall('getaddresstxids', [{ addresses: [address] }]);
-    // getaddresstxids is typically oldest-first; show newest-first to match explorer UX.
-    const orderedTxids = [...(allTxids || [])].reverse();
-    const pageTxids = orderedTxids.slice(pageNum * pageSize, (pageNum + 1) * pageSize);
-
-    const txs = await Promise.all(pageTxids.map((txid) => this.buildTransactionInfo(txid)));
+    const matches = await this.findRecentTransactionsForAddress(address);
+    const page = matches.slice(pageNum * pageSize, (pageNum + 1) * pageSize);
+    const txs = await Promise.all(page.map((m) => this.buildTransactionInfo(m.txid, m.blockhash)));
 
     return {
-      pagesTotal: Math.ceil((allTxids || []).length / pageSize),
+      pagesTotal: Math.ceil(matches.length / pageSize),
       txs,
     };
   };
 
+  private scanUtxoSet = async (address: string): Promise<any> => {
+    const result = await this.rpcCall('scantxoutset', ['start', [`addr(${address})`]]);
+    if (!result || !result.success) {
+      throw new Error('scantxoutset scan failed or was aborted');
+    }
+    return result;
+  };
+
   /*
-  * Naive N+1 implementation: resolves each input's source address with a separate RPC call, and
-  * fetches contract receipts best-effort. Fine for a handful of transactions on a dev/RegTest
-  * node; not optimized for a busy chain.
+  * Sums this address's incoming (received) satoshi across mempool transactions -- an
+  * approximation of "unconfirmed balance": it doesn't net out this address's own unconfirmed
+  * spends, only what it's receiving. Fine for the common "I just sent/received something,
+  * is it pending" case this feeds in the UI.
   */
-  private buildTransactionInfo = async (txid: string): Promise<Insight.IRawTransactionInfo> => {
-    const tx = await this.rpcCall('getrawtransaction', [txid, 1]);
+  private getUnconfirmedIncomingSatoshi = async (address: string): Promise<number> => {
+    const mempoolTxids: string[] = await this.rpcCall('getrawmempool', [false]);
+    let total = 0;
+    for (const txid of mempoolTxids) {
+      try {
+        const tx = await this.rpcCall('getrawtransaction', [txid, 1]); // mempool tx -- no blockhash needed
+        total += (tx.vout || [])
+          .filter((output: any) => this.outputAddresses(output).includes(address))
+          .reduce((sum: number, output: any) => sum + Math.round(output.value * 1e8), 0);
+      } catch (err) {
+        // Raced with the tx confirming/leaving the mempool -- ignore and move on.
+      }
+    }
+    return total;
+  };
+
+  /*
+  * Best-effort recent transaction history: scans the last RECENT_BLOCKS_TO_SCAN blocks for any
+  * transaction with an output paying this address (see the module comment for what this misses).
+  */
+  private findRecentTransactionsForAddress = async (
+    address: string
+  ): Promise<{ txid: string; blockhash: string }[]> => {
+    const tipHeight = await this.rpcCall('getblockcount', []);
+    const startHeight = Math.max(0, tipHeight - RECENT_BLOCKS_TO_SCAN + 1);
+    const matches: { txid: string; blockhash: string }[] = [];
+
+    for (let height = tipHeight; height >= startHeight; height--) {
+      const blockhash = await this.rpcCall('getblockhash', [height]);
+      const block = await this.rpcCall('getblock', [blockhash, 2]);
+      for (const tx of block.tx || []) {
+        const touchesAddress = (tx.vout || []).some(
+          (output: any) => this.outputAddresses(output).includes(address)
+        );
+        if (touchesAddress) {
+          matches.push({ txid: tx.txid, blockhash });
+        }
+      }
+    }
+
+    return matches; // Newest-first, since height counts down.
+  };
+
+  /*
+  * Naive N+1 implementation: resolves each input's source address with a separate RPC call
+  * (best-effort -- fails silently for any input whose transaction isn't resolvable without an
+  * index, leaving addr: ''), and fetches contract receipts best-effort.
+  */
+  private buildTransactionInfo = async (txid: string, blockhash?: string): Promise<Insight.IRawTransactionInfo> => {
+    const params: any[] = blockhash ? [txid, 1, blockhash] : [txid, 1];
+    const tx = await this.rpcCall('getrawtransaction', params);
 
     const vinPromises: Promise<Insight.IVin>[] = (tx.vin || []).map(async (input: any) => {
       if (!input.txid) {
@@ -153,11 +225,11 @@ export default class RpcInsightAdapter {
         return { txid: input.txid, addr: '' };
       }
       try {
+        // No index to find this input's own blockhash -- only resolves if it's still in the
+        // mempool. See the module comment: this is why vin.addr often can't be resolved here.
         const prevTx = await this.rpcCall('getrawtransaction', [input.txid, 1]);
         const prevOut = prevTx.vout[input.vout];
-        const addr = (prevOut.scriptPubKey.addresses && prevOut.scriptPubKey.addresses[0])
-          || prevOut.scriptPubKey.address || '';
-        return { txid: input.txid, addr };
+        return { txid: input.txid, addr: this.outputAddresses(prevOut)[0] || '' };
       } catch (err) {
         return { txid: input.txid, addr: '' };
       }
@@ -168,9 +240,7 @@ export default class RpcInsightAdapter {
       // Insight's own vout.value convention is satoshi (not the Core RPC's decimal MRX) --
       // see transactionController.ts's `amount / 1E8` handling.
       value: String(Math.round(output.value * 1e8)),
-      scriptPubKey: {
-        addresses: output.scriptPubKey.addresses || (output.scriptPubKey.address ? [output.scriptPubKey.address] : []),
-      },
+      scriptPubKey: { addresses: this.outputAddresses(output) },
     }));
 
     let receipt: Insight.ITransactionReceipt[] = [];
@@ -193,12 +263,22 @@ export default class RpcInsightAdapter {
       confirmations: tx.confirmations || 0,
       time: tx.time || tx.blocktime || 0,
       valueOut,
-      valueIn: 0, // Not resolved -- unused by this app's own UI (see transactionController.ts).
+      valueIn: 0, // Not resolved -- unused by this app's own UI.
       fees: 0, // Not resolved -- unused by this app's own UI.
       blockhash: tx.blockhash || '',
       blockheight: 0, // Not resolved without an extra getblock call -- unused by this app's own UI.
       isqrc20Transfer: receipt.length > 0,
     };
+  };
+
+  private outputAddresses = (output: any): string[] => {
+    if (!output || !output.scriptPubKey) {
+      return [];
+    }
+    if (output.scriptPubKey.addresses) {
+      return output.scriptPubKey.addresses;
+    }
+    return output.scriptPubKey.address ? [output.scriptPubKey.address] : [];
   };
 
   private rpcCall = async (method: string, params: any[]): Promise<any> => {

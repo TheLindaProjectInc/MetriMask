@@ -8,19 +8,25 @@ import { Insight } from 'metrixjs-wallet';
 * Implements the same methods `Wallet` calls on `this.insight` (getInfo, listUTXOs, sendRawTx,
 * contractCall, estimateFeePerByte, getTransactions, getTransactionInfo).
 *
-* IMPORTANT -- this was rewritten after testing against a real regtest daemon (verified via curl,
-* not assumed): the daemon has neither the Bitcoin-Core "addressindex" extension
-* (getaddressbalance/getaddressutxos/getaddresstxids/getaddressmempool all returned "Method not
-* found") nor -txindex (getrawtransaction fails for any confirmed txid unless you already know
-* its blockhash). So, unlike a typical Insight-style explorer, there is no cheap way to look up
-* "every transaction for this address" here. This adapter instead uses:
-*   - `scantxoutset` (a full UTXO-set scan, no index required) for balance and UTXOs.
-*   - a bounded scan of the most recent blocks for transaction history, since there is no
-*     address index to query directly. This only finds RECENT activity, and only transactions
-*     where the address appears in an output (vout) -- resolving vin (spending) addresses would
-*     need to look up arbitrary historical transactions, which isn't possible without an index,
-*     so "direction" (sent vs received) is not reliably accurate for older/purely-outgoing
-*     transactions. Good enough for local dev/RegTest testing; not a full explorer replacement.
+* Two different daemon capability profiles are supported, auto-detected per connection:
+*
+*   1. Bitcoin-Core "addressindex" extension available (getaddressbalance/getaddressutxos/
+*      getaddressdeltas/getaddressmempool) -- fast, O(1)-ish indexed lookups. Preferred when
+*      present, but NOT verified against a live addressindex-enabled daemon (none was available
+*      while writing this) -- based on the standard convention, with a fallback to (2) if it
+*      turns out to be wrong for a given daemon.
+*   2. No addressindex -- confirmed live against a real regtest daemon that returned "Method not
+*      found" for all of the above. Falls back to `scantxoutset` (a full UTXO-set scan) for
+*      balance/UTXOs, and a bounded scan of the most recent blocks for transaction history (only
+*      finds RECENT activity, and only transactions where the address appears in an output --
+*      resolving vin/spending addresses isn't possible without an index, so "direction" isn't
+*      reliably accurate for older/purely-outgoing transactions).
+*
+* IMPORTANT lesson from testing this live: profile (2)'s scantxoutset/block-scan approach does
+* not scale to a real TestNet/MainNet-size chain -- confirmed live (switching to TestNet against
+* a daemon without addressindex made balance/send effectively hang, scantxoutset scanning the
+* entire real UTXO set from disk). It's only really viable for a small chain like RegTest. This
+* is exactly why profile (1) is worth detecting and preferring when available.
 */
 
 export interface IRpcConnectionConfig {
@@ -31,17 +37,14 @@ export interface IRpcConnectionConfig {
   protocol?: 'http' | 'https'; // default: http
 }
 
-// How many of the most recent blocks to scan for an address's transaction history, in the
-// absence of any address index. Bounds worst-case RPC round-trips per getTransactions() call.
-// Kept small deliberately: this was originally 500, tested only against a local RegTest chain
-// with near-zero latency -- against a real/remote daemon (confirmed live: a switch to TestNet
-// produced 2000+ sequential requests, some individual requests taking well over a minute), that
-// was never going to finish in reasonable time even with the concurrency fix below.
+// How many of the most recent blocks to scan for an address's transaction history when there's
+// no address index. Bounds worst-case RPC round-trips per call. Kept small deliberately: this
+// was originally 500, tested only against a local RegTest chain with near-zero latency -- 500
+// blocks of real TestNet-size data was never going to finish in reasonable time.
 const RECENT_BLOCKS_TO_SCAN = 20;
 
-// How many mempool transactions to inspect for the "unconfirmed incoming" estimate. A busy
-// public network's mempool can hold thousands of transactions; scanning all of them every time
-// this is called is the same kind of unbounded cost as the block scan above.
+// How many mempool transactions to inspect for the "unconfirmed incoming" estimate when there's
+// no address index. A busy public network's mempool can hold thousands of transactions.
 const MAX_MEMPOOL_TXS_TO_SCAN = 50;
 
 // Concurrency cap for the batch helper below -- bounds how many requests are in flight at once
@@ -51,9 +54,9 @@ const SCAN_CONCURRENCY = 5;
 
 /*
 * Maps over `items` with at most `limit` calls to `fn` in flight at once, preserving input
-* order in the result. Sequentially awaiting one RPC call at a time (the original approach here)
-* turns a few hundred blocks/mempool entries into a few hundred round-trips of pure network
-* latency; this cuts that down to roughly items.length / limit "rounds" instead.
+* order in the result. Sequentially awaiting one RPC call at a time turns a few hundred
+* blocks/mempool entries into a few hundred round-trips of pure network latency; this cuts that
+* down to roughly items.length / limit "rounds" instead.
 */
 const mapWithConcurrency = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
   const results: R[] = new Array(items.length);
@@ -87,6 +90,14 @@ const SCAN_ALREADY_IN_PROGRESS_RPC_CODE = -8;
 const SCAN_BUSY_RETRY_ATTEMPTS = 10;
 const SCAN_BUSY_RETRY_DELAY_MS = 500;
 
+const METHOD_NOT_FOUND_RPC_CODE = -32601;
+
+// Whether a given daemon (keyed by host:port) has the addressindex extension, cached after the
+// first check so every call after the first doesn't re-probe. Module-level like scanQueue, for
+// the same reason: separate `getInsightOverride()` calls create separate adapter instances
+// against what's usually the same daemon.
+const addressIndexSupportCache = new Map<string, boolean>();
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default class RpcInsightAdapter {
@@ -106,60 +117,25 @@ export default class RpcInsightAdapter {
   };
 
   public getInfo = async (address: string): Promise<Insight.IGetInfo> => {
-    const [scan, unconfirmedSatoshi] = await Promise.all([
-      this.scanUtxoSet(address),
-      this.getUnconfirmedIncomingSatoshi(address).catch(() => 0),
-    ]);
-
-    const balanceSat = Math.round(scan.total_amount * 1e8);
-
-    return {
-      addrStr: address,
-      balance: scan.total_amount,
-      balanceSat,
-      // Not resolvable without an address/tx index -- see the module comment above.
-      totalReceived: scan.total_amount,
-      totalReceivedSat: balanceSat,
-      totalSet: 0,
-      totalSentSat: 0,
-      unconfirmedBalance: unconfirmedSatoshi / 1e8,
-      unconfirmedBalanceSat: unconfirmedSatoshi,
-      unconfirmedTxApperances: unconfirmedSatoshi > 0 ? 1 : 0,
-      txApperances: 0,
-      transactions: [],
-    };
+    if (await this.useAddressIndex()) {
+      try {
+        return await this.getInfoViaAddressIndex(address);
+      } catch (err) {
+        console.error('RpcInsightAdapter.getInfo: address-index path failed, falling back to scantxoutset', err);
+      }
+    }
+    return this.getInfoViaScan(address);
   };
 
   public listUTXOs = async (address: string): Promise<Insight.IUTXO[]> => {
-    const scan = await this.scanUtxoSet(address);
-
-    const utxoPromises: Promise<Insight.IUTXO>[] = (scan.unspents || []).map(async (utxo: any) => {
-      // No -txindex, so getrawtransaction needs an explicit blockhash for a confirmed tx.
-      // Verbosity 1 (not 0) so the coinbase/coinstake marker on vin[0] is available too --
-      // scantxoutset doesn't report stake status itself, and getting this wrong matters: a
-      // freshly-mined block's reward is immature (verified against a real node: getwalletinfo
-      // showed a large immature_balance from 5 just-mined blocks) and metrixjs-wallet's own
-      // maturity filter (getBitcoinjsUTXOs) only enforces the confirmations>=960 floor for
-      // isStake UTXOs -- mislabeling one as isStake:false would offer it as spendable
-      // immediately, and the network would reject the resulting broadcast.
-      const blockhash = await this.rpcCall('getblockhash', [utxo.height]);
-      const verboseTx = await this.rpcCall('getrawtransaction', [utxo.txid, 1, blockhash]);
-      const isStake = !!(verboseTx.vin && verboseTx.vin[0] && verboseTx.vin[0].coinbase);
-      return {
-        address,
-        txid: utxo.txid,
-        vout: utxo.vout,
-        scriptPubKey: utxo.scriptPubKey,
-        amount: utxo.amount,
-        satoshis: Math.round(utxo.amount * 1e8),
-        isStake,
-        height: utxo.height,
-        confirmations: Math.max(0, scan.height - utxo.height + 1),
-        rawtx: verboseTx.hex,
-      };
-    });
-
-    return Promise.all(utxoPromises);
+    if (await this.useAddressIndex()) {
+      try {
+        return await this.listUTXOsViaAddressIndex(address);
+      } catch (err) {
+        console.error('RpcInsightAdapter.listUTXOs: address-index path failed, falling back to scantxoutset', err);
+      }
+    }
+    return this.listUTXOsViaScan(address);
   };
 
   public sendRawTx = async (rawtx: string): Promise<Insight.ISendRawTxResult> => {
@@ -196,15 +172,189 @@ export default class RpcInsightAdapter {
   };
 
   public getTransactions = async (address: string, pageNum = 0): Promise<Insight.IRawTransactions> => {
-    const pageSize = 10;
-    const matches = await this.findRecentTransactionsForAddress(address);
-    const page = matches.slice(pageNum * pageSize, (pageNum + 1) * pageSize);
-    const txs = await Promise.all(page.map((m) => this.buildTransactionInfo(m.txid, m.blockhash)));
+    if (await this.useAddressIndex()) {
+      try {
+        return await this.getTransactionsViaAddressIndex(address, pageNum);
+      } catch (err) {
+        console.error(
+          'RpcInsightAdapter.getTransactions: address-index path failed, falling back to recent-block scan', err
+        );
+      }
+    }
+    return this.getTransactionsViaRecentBlocks(address, pageNum);
+  };
+
+  /*
+  * Detects (once per daemon, then cached) whether the addressindex extension is available, via
+  * a throwaway probe call: any response other than "method not found" (-32601) -- including a
+  * validation error on the bogus probe address -- confirms the method itself exists.
+  */
+  private useAddressIndex = async (): Promise<boolean> => {
+    const key = `${this.config.host}:${this.config.port}`;
+    const cached = addressIndexSupportCache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let supported: boolean;
+    try {
+      await this.rpcCall('getaddressbalance', [{ addresses: ['probe'] }]);
+      supported = true;
+    } catch (err: any) {
+      supported = !(err && err.rpcCode === METHOD_NOT_FOUND_RPC_CODE);
+    }
+    addressIndexSupportCache.set(key, supported);
+    return supported;
+  };
+
+  // ---- Address-index fast paths --------------------------------------------------------
+  // Not verified against a live addressindex-enabled daemon (none was available while writing
+  // this) -- based on the standard Bitcoin-Core addressindex RPC conventions. Each has a
+  // fallback to the verified no-index path above if it throws for any reason.
+
+  private getInfoViaAddressIndex = async (address: string): Promise<Insight.IGetInfo> => {
+    const [balance, unconfirmedSatoshi, txids] = await Promise.all([
+      this.rpcCall('getaddressbalance', [{ addresses: [address] }]),
+      this.getUnconfirmedIncomingSatoshiViaAddressIndex(address),
+      this.rpcCall('getaddresstxids', [{ addresses: [address] }]),
+    ]);
 
     return {
-      pagesTotal: Math.ceil(matches.length / pageSize),
+      addrStr: address,
+      balance: balance.balance / 1e8,
+      balanceSat: balance.balance,
+      totalReceived: balance.received / 1e8,
+      totalReceivedSat: balance.received,
+      totalSet: (balance.received - balance.balance) / 1e8,
+      totalSentSat: balance.received - balance.balance,
+      unconfirmedBalance: unconfirmedSatoshi / 1e8,
+      unconfirmedBalanceSat: unconfirmedSatoshi,
+      unconfirmedTxApperances: unconfirmedSatoshi > 0 ? 1 : 0,
+      txApperances: (txids || []).length,
+      transactions: txids || [],
+    };
+  };
+
+  private listUTXOsViaAddressIndex = async (address: string): Promise<Insight.IUTXO[]> => {
+    const [utxos, tipHeight]: [any[], number] = await Promise.all([
+      this.rpcCall('getaddressutxos', [{ addresses: [address] }]),
+      this.rpcCall('getblockcount', []),
+    ]);
+
+    return mapWithConcurrency<any, Insight.IUTXO>(utxos || [], SCAN_CONCURRENCY, async (utxo) => {
+      // addressindex speeds up *finding* the UTXOs, not fetching their containing transaction --
+      // still need the verbose tx (no -txindex assumed) for rawtx + stake detection, same as the
+      // no-index path.
+      const blockhash = await this.rpcCall('getblockhash', [utxo.height]);
+      const verboseTx = await this.rpcCall('getrawtransaction', [utxo.txid, 1, blockhash]);
+      const isStake = !!(verboseTx.vin && verboseTx.vin[0] && verboseTx.vin[0].coinbase);
+      return {
+        address,
+        txid: utxo.txid,
+        vout: utxo.outputIndex,
+        scriptPubKey: utxo.script,
+        amount: utxo.satoshis / 1e8,
+        satoshis: utxo.satoshis,
+        isStake,
+        height: utxo.height,
+        confirmations: utxo.height > 0 ? Math.max(0, tipHeight - utxo.height + 1) : 0,
+        rawtx: verboseTx.hex,
+      };
+    });
+  };
+
+  private getUnconfirmedIncomingSatoshiViaAddressIndex = async (address: string): Promise<number> => {
+    const mempool: any[] = await this.rpcCall('getaddressmempool', [{ addresses: [address] }]);
+    return (mempool || [])
+      .filter((delta: any) => delta.satoshis > 0)
+      .reduce((sum: number, delta: any) => sum + Number(delta.satoshis), 0);
+  };
+
+  private getTransactionsViaAddressIndex = async (
+    address: string, pageNum: number
+  ): Promise<Insight.IRawTransactions> => {
+    const pageSize = 10;
+    const deltas: any[] = await this.rpcCall('getaddressdeltas', [{ addresses: [address] }]);
+
+    const heightByTxid = new Map<string, number>();
+    for (const delta of (deltas || []) as any[]) {
+      heightByTxid.set(String(delta.txid), Number(delta.height));
+    }
+    const orderedTxids = [...heightByTxid.keys()]
+      .sort((a, b) => (heightByTxid.get(b) as number) - (heightByTxid.get(a) as number));
+    const pageTxids = orderedTxids.slice(pageNum * pageSize, (pageNum + 1) * pageSize);
+
+    const txs = await mapWithConcurrency(pageTxids, SCAN_CONCURRENCY, async (txid) => {
+      const height = heightByTxid.get(txid) || 0;
+      const blockhash: string | undefined = height > 0 ? await this.rpcCall('getblockhash', [height]) : undefined;
+      return this.buildTransactionInfo(txid, blockhash);
+    });
+
+    return {
+      pagesTotal: Math.ceil(orderedTxids.length / pageSize),
       txs,
     };
+  };
+
+  // ---- No-index fallbacks ---------------------------------------------------------------
+  // Verified live against a real regtest daemon without addressindex. Only really viable on a
+  // small chain (see the module comment) -- this is the path that's slow/impractical on
+  // TestNet/MainNet-size data, which is exactly why the address-index paths above exist.
+
+  private getInfoViaScan = async (address: string): Promise<Insight.IGetInfo> => {
+    const [scan, unconfirmedSatoshi] = await Promise.all([
+      this.scanUtxoSet(address),
+      this.getUnconfirmedIncomingSatoshiManual(address).catch(() => 0),
+    ]);
+
+    const balanceSat = Math.round(scan.total_amount * 1e8);
+
+    return {
+      addrStr: address,
+      balance: scan.total_amount,
+      balanceSat,
+      // Not resolvable without an address/tx index.
+      totalReceived: scan.total_amount,
+      totalReceivedSat: balanceSat,
+      totalSet: 0,
+      totalSentSat: 0,
+      unconfirmedBalance: unconfirmedSatoshi / 1e8,
+      unconfirmedBalanceSat: unconfirmedSatoshi,
+      unconfirmedTxApperances: unconfirmedSatoshi > 0 ? 1 : 0,
+      txApperances: 0,
+      transactions: [],
+    };
+  };
+
+  private listUTXOsViaScan = async (address: string): Promise<Insight.IUTXO[]> => {
+    const scan = await this.scanUtxoSet(address);
+    const unspents: any[] = scan.unspents || [];
+
+    return mapWithConcurrency<any, Insight.IUTXO>(unspents, SCAN_CONCURRENCY, async (utxo) => {
+      // No -txindex, so getrawtransaction needs an explicit blockhash for a confirmed tx.
+      // Verbosity 1 (not 0) so the coinbase/coinstake marker on vin[0] is available too --
+      // scantxoutset doesn't report stake status itself, and getting this wrong matters: a
+      // freshly-mined block's reward is immature (verified against a real node: getwalletinfo
+      // showed a large immature_balance from 5 just-mined blocks) and metrixjs-wallet's own
+      // maturity filter (getBitcoinjsUTXOs) only enforces the confirmations>=960 floor for
+      // isStake UTXOs -- mislabeling one as isStake:false would offer it as spendable
+      // immediately, and the network would reject the resulting broadcast.
+      const blockhash = await this.rpcCall('getblockhash', [utxo.height]);
+      const verboseTx = await this.rpcCall('getrawtransaction', [utxo.txid, 1, blockhash]);
+      const isStake = !!(verboseTx.vin && verboseTx.vin[0] && verboseTx.vin[0].coinbase);
+      return {
+        address,
+        txid: utxo.txid,
+        vout: utxo.vout,
+        scriptPubKey: utxo.scriptPubKey,
+        amount: utxo.amount,
+        satoshis: Math.round(utxo.amount * 1e8),
+        isStake,
+        height: utxo.height,
+        confirmations: Math.max(0, scan.height - utxo.height + 1),
+        rawtx: verboseTx.hex,
+      };
+    });
   };
 
   private scanUtxoSet = (address: string): Promise<any> => {
@@ -238,7 +388,7 @@ export default class RpcInsightAdapter {
   * spends, only what it's receiving. Fine for the common "I just sent/received something,
   * is it pending" case this feeds in the UI.
   */
-  private getUnconfirmedIncomingSatoshi = async (address: string): Promise<number> => {
+  private getUnconfirmedIncomingSatoshiManual = async (address: string): Promise<number> => {
     const mempoolTxids: string[] = await this.rpcCall('getrawmempool', [false]);
     const amounts = await mapWithConcurrency<string, number>(
       mempoolTxids.slice(0, MAX_MEMPOOL_TXS_TO_SCAN),
@@ -263,6 +413,20 @@ export default class RpcInsightAdapter {
   * Best-effort recent transaction history: scans the last RECENT_BLOCKS_TO_SCAN blocks for any
   * transaction with an output paying this address (see the module comment for what this misses).
   */
+  private getTransactionsViaRecentBlocks = async (
+    address: string, pageNum: number
+  ): Promise<Insight.IRawTransactions> => {
+    const pageSize = 10;
+    const matches = await this.findRecentTransactionsForAddress(address);
+    const page = matches.slice(pageNum * pageSize, (pageNum + 1) * pageSize);
+    const txs = await mapWithConcurrency(page, SCAN_CONCURRENCY, (m) => this.buildTransactionInfo(m.txid, m.blockhash));
+
+    return {
+      pagesTotal: Math.ceil(matches.length / pageSize),
+      txs,
+    };
+  };
+
   private findRecentTransactionsForAddress = async (
     address: string
   ): Promise<{ txid: string; blockhash: string }[]> => {
@@ -296,7 +460,8 @@ export default class RpcInsightAdapter {
   /*
   * Naive N+1 implementation: resolves each input's source address with a separate RPC call
   * (best-effort -- fails silently for any input whose transaction isn't resolvable without an
-  * index, leaving addr: ''), and fetches contract receipts best-effort.
+  * index, leaving addr: ''), and fetches contract receipts best-effort. Shared by both the
+  * address-index and no-index transaction-history paths.
   */
   private buildTransactionInfo = async (txid: string, blockhash?: string): Promise<Insight.IRawTransactionInfo> => {
     const params: any[] = blockhash ? [txid, 1, blockhash] : [txid, 1];

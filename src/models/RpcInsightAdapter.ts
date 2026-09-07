@@ -41,7 +41,20 @@ const RECENT_BLOCKS_TO_SCAN = 500;
 // right after login -- balance, UTXOs, max-send estimate -- so without this they raced each
 // other reliably). Module-level (not per-instance) so every adapter in this process serializes
 // against the same queue, since separate `getInsightOverride()` calls create separate instances.
+//
+// This alone isn't fully sufficient: it only protects calls made within the lifetime of this
+// module (i.e. this background service worker instance). Manifest V3 service workers can be
+// torn down and restarted mid-flow, which resets this queue while a scan the daemon is still
+// running server-side survives -- so a fresh scan after a restart can still collide with it.
+// SCAN_BUSY_RETRY handles that case (and any other source of a concurrent scan) by retrying on
+// the daemon's own "already in progress" error rather than relying on in-memory bookkeeping.
 let scanQueue: Promise<any> = Promise.resolve();
+
+const SCAN_ALREADY_IN_PROGRESS_RPC_CODE = -8;
+const SCAN_BUSY_RETRY_ATTEMPTS = 10;
+const SCAN_BUSY_RETRY_DELAY_MS = 500;
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default class RpcInsightAdapter {
   private config: IRpcConnectionConfig;
@@ -163,11 +176,21 @@ export default class RpcInsightAdapter {
 
   private scanUtxoSet = (address: string): Promise<any> => {
     const run = async () => {
-      const result = await this.rpcCall('scantxoutset', ['start', [`addr(${address})`]]);
-      if (!result || !result.success) {
-        throw new Error('scantxoutset scan failed or was aborted');
+      for (let attempt = 1; attempt <= SCAN_BUSY_RETRY_ATTEMPTS; attempt++) {
+        try {
+          const result = await this.rpcCall('scantxoutset', ['start', [`addr(${address})`]]);
+          if (!result || !result.success) {
+            throw new Error('scantxoutset scan failed or was aborted');
+          }
+          return result;
+        } catch (err: any) {
+          const daemonBusy = err && err.rpcCode === SCAN_ALREADY_IN_PROGRESS_RPC_CODE;
+          if (!daemonBusy || attempt === SCAN_BUSY_RETRY_ATTEMPTS) {
+            throw err;
+          }
+          await delay(SCAN_BUSY_RETRY_DELAY_MS);
+        }
       }
-      return result;
     };
     // Chain onto the shared queue regardless of whether the previous scan succeeded or failed,
     // so one failure doesn't wedge every scan after it.
@@ -307,13 +330,23 @@ export default class RpcInsightAdapter {
       body: JSON.stringify({ jsonrpc: '1.0', id: ++this.requestId, method, params }),
     });
 
-    if (!response.ok) {
+    // This daemon returns a JSON-RPC error body (with a real code/message, e.g. -8 "Scan
+    // already in progress") as an HTTP 500, not 200 -- read the body before giving up on a
+    // non-ok status, or that real error gets thrown away in favor of a bare "HTTP 500".
+    let body: any;
+    try {
+      body = await response.json();
+    } catch (err) {
       throw new Error(`RPC ${method} failed: HTTP ${response.status}`);
     }
 
-    const body = await response.json();
-    if (body.error) {
-      throw new Error(`RPC ${method} failed: ${body.error.message || JSON.stringify(body.error)}`);
+    if (body && body.error) {
+      const error: any = new Error(`RPC ${method} failed: ${body.error.message || JSON.stringify(body.error)}`);
+      error.rpcCode = body.error.code;
+      throw error;
+    }
+    if (!response.ok) {
+      throw new Error(`RPC ${method} failed: HTTP ${response.status}`);
     }
     return body.result;
   };

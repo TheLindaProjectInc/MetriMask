@@ -35,19 +35,33 @@ class Settings extends Component<WithStyles & IProps, {}> {
         <NavBar hasBackButton title="Settings" />
         <div className={classes.contentContainer}>
           <div className={classes.fieldsContainer}>
-            <SliField {...this.props} />
-            <NetworkDataSourceField {...this.props} networkName={NETWORK_NAMES.MAINNET} />
-            <NetworkDataSourceField {...this.props} networkName={NETWORK_NAMES.TESTNET} />
-            <RegtestToggleField {...this.props} />
-            <RegtestEndpointField {...this.props} />
-            <DeveloperModeToggleField {...this.props} />
-            <DeployContractField {...this.props} />
+            <Section classes={classes} title="General">
+              <SliField {...this.props} />
+            </Section>
+
+            <Section classes={classes} title="Network Providers">
+              <NetworkDataSourceField {...this.props} networkName={NETWORK_NAMES.MAINNET} />
+              <NetworkDataSourceField {...this.props} networkName={NETWORK_NAMES.TESTNET} />
+              <RegtestToggleField {...this.props} />
+              <RegtestEndpointField {...this.props} />
+            </Section>
+
+            <Section classes={classes} title="Developer">
+              <DeveloperModeToggleField {...this.props} />
+            </Section>
           </div>
         </div>
       </div>
     );
   }
 }
+
+const Section: React.FC<any> = ({ classes, title, children }: any) => (
+  <div className={classes.section}>
+    <Typography className={classes.sectionTitle}>{title}</Typography>
+    {children}
+  </div>
+);
 
 const SliField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
   <div className={classes.fieldContainer}>
@@ -94,21 +108,6 @@ const DeveloperModeToggleField: React.FC<any> = observer(({ classes, store: { se
       />
     </div>
   </div>
-));
-
-const DeployContractField: React.FC<any> = observer(({ classes, store }: any) => (
-  store.settingsStore.developerModeEnabled ? (
-    <div className={classes.fieldContainer}>
-      <Button
-        color="primary"
-        variant="outlined"
-        fullWidth
-        onClick={() => store.routerStore.push('/deploy-contract')}
-      >
-        Deploy Contract
-      </Button>
-    </div>
-  ) : null
 ));
 
 const NetworkEndpointField: React.FC<any> = observer(({ classes, store: { settingsStore }, networkName }: any) => {

@@ -18,6 +18,23 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
     display: 'flex',
     flexDirection: 'column',
   },
+  section: {
+    marginBottom: theme.padding.md,
+    padding: theme.padding.md,
+    background: theme.card.background,
+    border: theme.card.border,
+    borderRadius: theme.card.radius,
+  },
+  sectionTitle: {
+    fontSize: theme.font.xs,
+    fontWeight: 'bold',
+    color: theme.palette.primary.main,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: theme.padding.sm,
+    paddingBottom: theme.padding.unit,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
   fieldHeading: {
     marginBottom: theme.padding.unit,
     fontSize: theme.font.sm,

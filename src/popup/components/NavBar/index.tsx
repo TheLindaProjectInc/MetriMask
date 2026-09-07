@@ -74,7 +74,7 @@ const BackButton: React.FC<IProps> = ({ classes, isDarkTheme, store: { routerSto
 );
 
 const SettingsButton: React.FC<IProps> =
-  observer(({ classes, store: { navBarStore }, isDarkTheme }: any) => (
+  observer(({ classes, store: { navBarStore, settingsStore }, isDarkTheme }: any) => (
   <Fragment>
     <IconButton
       aria-owns={navBarStore.settingsMenuAnchor ? 'settingsMenu' : undefined}
@@ -92,6 +92,9 @@ const SettingsButton: React.FC<IProps> =
       onClose={() => navBarStore.settingsMenuAnchor = undefined}
     >
       <MenuItem onClick={navBarStore.routeToExportAccount}>Export Account</MenuItem>
+      {settingsStore.developerModeEnabled && (
+        <MenuItem onClick={navBarStore.routeToContracts}>Contracts</MenuItem>
+      )}
       <MenuItem onClick={navBarStore.routeToSettings}>Settings</MenuItem>
       <MenuItem onClick={navBarStore.logout}>Logout</MenuItem>
     </Menu>

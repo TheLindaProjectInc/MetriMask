@@ -39,6 +39,12 @@ export default class NavBarStore {
   };
 
   @action
+  public routeToContracts = () => {
+    this.reset();
+    this.app.routerStore.push('/contracts');
+  };
+
+  @action
   public logout = () => {
     this.reset();
     this.app.routerStore.push('/loading');

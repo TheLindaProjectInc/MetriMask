@@ -29,6 +29,7 @@ import AddToken from './pages/AddToken';
 import AddMrc721Token from './pages/AddMRC721Token';
 import ConfirmExternalRequest from './pages/ConfirmExternalRequest';
 import DeployContract from './pages/DeployContract';
+import Contracts from './pages/Contracts';
 import AppStore, { store } from './stores/AppStore';
 import { MESSAGE_TYPE } from '../constants';
 
@@ -73,6 +74,7 @@ export default class MainContainer extends Component<IProps, {}> {
             <Route path="/add-mrc721-token" element={<AddMrc721Token store={store}/>} />
             <Route path="/confirm-external-request" element={<ConfirmExternalRequest store={store}/>} />
             <Route path="/deploy-contract" element={<DeployContract store={store}/>} />
+            <Route path="/contracts" element={<Contracts store={store}/>} />
           </Routes>
         </HistoryRouter>
         <UnexpectedErrorDialog />

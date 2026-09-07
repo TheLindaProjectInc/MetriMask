@@ -35,6 +35,14 @@ export interface IRpcConnectionConfig {
 // absence of any address index. Bounds worst-case RPC round-trips per getTransactions() call.
 const RECENT_BLOCKS_TO_SCAN = 500;
 
+// scantxoutset only allows one scan in flight at a time -- system-wide on the daemon, not
+// per-connection. A second concurrent call errors with "Scan already in progress" (returned as
+// an HTTP 500 by this daemon, confirmed live: MetriMask fires several RPC calls concurrently
+// right after login -- balance, UTXOs, max-send estimate -- so without this they raced each
+// other reliably). Module-level (not per-instance) so every adapter in this process serializes
+// against the same queue, since separate `getInsightOverride()` calls create separate instances.
+let scanQueue: Promise<any> = Promise.resolve();
+
 export default class RpcInsightAdapter {
   private config: IRpcConnectionConfig;
   private requestId = 0;
@@ -153,12 +161,19 @@ export default class RpcInsightAdapter {
     };
   };
 
-  private scanUtxoSet = async (address: string): Promise<any> => {
-    const result = await this.rpcCall('scantxoutset', ['start', [`addr(${address})`]]);
-    if (!result || !result.success) {
-      throw new Error('scantxoutset scan failed or was aborted');
-    }
-    return result;
+  private scanUtxoSet = (address: string): Promise<any> => {
+    const run = async () => {
+      const result = await this.rpcCall('scantxoutset', ['start', [`addr(${address})`]]);
+      if (!result || !result.success) {
+        throw new Error('scantxoutset scan failed or was aborted');
+      }
+      return result;
+    };
+    // Chain onto the shared queue regardless of whether the previous scan succeeded or failed,
+    // so one failure doesn't wedge every scan after it.
+    const next = scanQueue.then(run, run);
+    scanQueue = next.catch(() => undefined);
+    return next;
   };
 
   /*

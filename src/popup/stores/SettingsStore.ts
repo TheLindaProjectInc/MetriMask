@@ -126,6 +126,13 @@ export default class SettingsStore {
     chrome.runtime.sendMessage({
       type: MESSAGE_TYPE.SAVE_REGTEST_ENABLED,
       enabled: this.regtestEnabled
+    }, () => {
+      // The network switcher dropdown reads sessionStore.networks, which is otherwise only
+      // fetched once at startup -- refresh it now so RegTest appears/disappears immediately
+      // instead of requiring a full reload of the extension UI.
+      chrome.runtime.sendMessage({ type: MESSAGE_TYPE.GET_NETWORKS }, (response: any) => {
+        this.app.sessionStore.networks = response;
+      });
     });
   };
 

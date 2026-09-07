@@ -25,6 +25,18 @@ const LOCAL_RPC_INFO = 'Connects directly to a metrixd daemon\'s JSON-RPC interf
   'daemon configuration is required. Transaction history only covers recent blocks, since ' +
   'there\'s no address index to search further back.';
 
+const SESSION_LOGOUT_INTERVAL_INFO = 'Automatically logs you out after this period of ' +
+  'inactivity, requiring your password to log back in. Choose "None" to disable automatic logout.';
+
+const NETWORK_PROVIDER_INFO = 'The block explorer API MetriMask uses on this network for ' +
+  'balances, transactions, and fee estimates. Leave blank to use the default.';
+
+const ENABLE_REGTEST_INFO = 'Shows RegTest as a selectable network. RegTest is a local test ' +
+  'network for development -- it isn\'t connected to MainNet or TestNet.';
+
+const DEVELOPER_MODE_INFO = 'Reveals advanced features for development and testing, such as ' +
+  'connecting to a local RPC daemon and deploying contracts. Most users don\'t need this.';
+
 interface IProps {
   classes: Record<string, string>;
   store: AppStore;
@@ -71,7 +83,7 @@ const Section: React.FC<any> = ({ classes, title, children }: any) => (
 
 const SliField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
   <div className={classes.fieldContainer}>
-    <Heading name="Session Logout Interval" />
+    <Heading name="Session Logout Interval" info={SESSION_LOGOUT_INTERVAL_INFO} />
     <div className={classes.fieldContentContainer}>
       <Select
         className={classes.select}
@@ -93,7 +105,7 @@ const SliField: React.FC<any> = observer(({ classes, store: { settingsStore } }:
 const RegtestToggleField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
   <div className={classes.fieldContainer}>
     <div className={classes.switchRow}>
-      <Heading name="Enable RegTest" />
+      <Heading name="Enable RegTest" info={ENABLE_REGTEST_INFO} />
       <Switch
         color="primary"
         checked={settingsStore.regtestEnabled}
@@ -106,7 +118,7 @@ const RegtestToggleField: React.FC<any> = observer(({ classes, store: { settings
 const DeveloperModeToggleField: React.FC<any> = observer(({ classes, store: { settingsStore } }: any) => (
   <div className={classes.fieldContainer}>
     <div className={classes.switchRow}>
-      <Heading name="Developer Mode" />
+      <Heading name="Developer Mode" info={DEVELOPER_MODE_INFO} />
       <Switch
         color="primary"
         checked={settingsStore.developerModeEnabled}
@@ -123,7 +135,7 @@ const NetworkEndpointField: React.FC<any> = observer(({ classes, store: { settin
 
   return (
     <div className={classes.fieldContainer}>
-      <Heading name={`${networkName} RPC Provider`} />
+      <Heading name={`${networkName} RPC Provider`} info={NETWORK_PROVIDER_INFO} />
       <div className={classes.buttonFieldHeadingContainer}>
         <div className={classes.fieldTextContainer}>
           <TextField

@@ -8,6 +8,7 @@ import { map } from 'lodash';
 
 import styles from './styles';
 import NavBar from '../../components/NavBar';
+import InfoTooltip from '../../components/InfoTooltip';
 import AppStore from '../../stores/AppStore';
 import { NETWORK_NAMES } from '../../../constants';
 import { SessionLogoutInterval } from '../../../models/SessionLogoutInterval';
@@ -18,6 +19,11 @@ const DEFAULT_NETWORK_URLS: Record<string, string> = {
   [NETWORK_NAMES.TESTNET]: 'https://testnet-explorer.metrixcoin.com/',
   [NETWORK_NAMES.REGTEST]: 'http://localhost:3001/explorer/',
 };
+
+const LOCAL_RPC_INFO = 'Connects directly to a metrixd daemon\'s JSON-RPC interface instead ' +
+  'of a block explorer. Useful for RegTest, which usually has no explorer running. No special ' +
+  'daemon configuration is required. Transaction history only covers recent blocks, since ' +
+  'there\'s no address index to search further back.';
 
 interface IProps {
   classes: Record<string, string>;
@@ -178,7 +184,7 @@ const NetworkDataSourceField: React.FC<any> = observer(({ classes, store, networ
       {settingsStore.developerModeEnabled && (
         <div className={classes.fieldContainer}>
           <div className={classes.switchRow}>
-            <Heading name={`${networkName}: Use Local RPC`} />
+            <Heading name={`${networkName}: Use Local RPC`} info={LOCAL_RPC_INFO} />
             <Switch
               color="primary"
               checked={rpcEnabled}
@@ -202,7 +208,7 @@ const RpcConfigField: React.FC<any> = observer(({ classes, store: { settingsStor
 
   return (
     <div className={classes.fieldContainer}>
-      <Heading name={`${networkName} Local RPC (requires addressindex=1)`} />
+      <Heading name={`${networkName} Local RPC`} info={LOCAL_RPC_INFO} />
       <div className={classes.fieldTextContainer}>
         <TextField
           className={classes.selectOrTextField}
@@ -268,8 +274,11 @@ const RpcConfigField: React.FC<any> = observer(({ classes, store: { settingsStor
   );
 });
 
-const Heading = withStyles(styles, { withTheme: true })(({ classes, name }: any) => (
-  <Typography className={classes.fieldHeading}>{name}</Typography>
+const Heading = withStyles(styles, { withTheme: true })(({ classes, name, info }: any) => (
+  <Typography className={classes.fieldHeading}>
+    {name}
+    {info && <InfoTooltip text={info} />}
+  </Typography>
 ));
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
